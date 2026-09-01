@@ -1,36 +1,165 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# STUDIO 98 — studio rental website
 
-## Getting Started
+Premium, editorial single-page site for a business renting two photo/video
+studios, with a real booking + payment architecture behind it.
 
-First, run the development server:
+> **All business content is placeholder.** Studio names, prices, address, phone,
+> email, social links and images are stand-ins. Search the codebase for
+> `placeholder` / `TODO` and replace before launch.
+
+## Stack
+
+- **Next.js 16** (App Router, Turbopack) · **React 19** · **TypeScript (strict)**
+- **Tailwind CSS v4** — design tokens in [`app/globals.css`](app/globals.css)
+- **Framer Motion** — subtle reveals only ([`components/ui/Reveal.tsx`](components/ui/Reveal.tsx))
+- **lucide-react** — icons
+- **Supabase** — database + availability + bookings
+- **Stripe** — card / Apple Pay / Google Pay via hosted checkout
+- **Resend** (optional) — confirmation emails
+
+## Getting started
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+cp .env.example .env.local   # optional — site runs without it
+npm run dev                  # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+With **no environment variables**, the marketing site is fully functional and
+the booking UI works in **demo mode** (every slot shows as available; submitting
+returns a "backend not configured" message).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Deploy to Vercel
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+This repo is the project root — import it into Vercel as-is (framework
+auto-detected as Next.js, no root-directory override).
 
-## Learn More
+1. **New Project → Import** `TudorlE/studio98`.
+2. Set environment variables (Project → Settings → Environment Variables). The
+   only one recommended for a first deploy:
+   | Variable | Value |
+   |---|---|
+   | `NEXT_PUBLIC_SITE_URL` | your deployment URL, e.g. `https://studio98.vercel.app` |
+   Add the Supabase / Stripe / Resend keys from [`.env.example`](.env.example)
+   when you're ready to switch off demo mode.
+3. **Deploy.** Build command `next build` and install `npm install` are the
+   defaults — nothing to change.
+4. After adding `STRIPE_WEBHOOK_SECRET`, point a Stripe webhook at
+   `https://<your-domain>/api/webhooks/stripe` (events:
+   `checkout.session.completed`, `checkout.session.expired`,
+   `checkout.session.async_payment_failed`).
 
-To learn more about Next.js, take a look at the following resources:
+`.env*` is gitignored — secrets only live in the Vercel dashboard.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Enabling real bookings
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. Create a Supabase project.
+2. Run [`supabase/migrations/0001_init.sql`](supabase/migrations/0001_init.sql)
+   then [`supabase/seed.sql`](supabase/seed.sql) in the SQL editor.
+3. Put the project URL + **service-role** key in `.env.local`
+   (`NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`).
 
-## Deploy on Vercel
+Double-booking is prevented at two levels:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- a fast pre-check in the API, and
+- a Postgres **exclusion constraint** (`bookings_no_overlap`, GiST on
+  `studio_id` + time range) — the authoritative guard against races.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Cancelled bookings automatically free their slot.
+
+## Enabling payments
+
+Set `STRIPE_SECRET_KEY` + `STRIPE_WEBHOOK_SECRET` (and
+`NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`). The flow:
+
+```
+booking form → POST /api/bookings → creates `hold` row
+            → Stripe Checkout (hosted, card never touches our servers)
+            → webhook /api/webhooks/stripe → row becomes `confirmed` + email
+            → /booking/confirmation?booking=<id>
+```
+
+Local webhook testing: `stripe listen --forward-to localhost:3000/api/webhooks/stripe`
+
+### Switching payment provider (e.g. for Moldova)
+
+Everything payment-related sits behind
+[`lib/payments/provider.ts`](lib/payments/provider.ts). To add maib / Paynet /
+another processor:
+
+1. Create `lib/payments/<name>.ts` implementing `PaymentProvider`.
+2. Register it in [`lib/payments/index.ts`](lib/payments/index.ts).
+3. Set `PAYMENT_PROVIDER=<name>`.
+
+No route or UI changes required.
+
+## Project structure
+
+```
+app/
+  page.tsx                     one-page composition
+  layout.tsx                   fonts, metadata, viewport
+  opengraph-image.tsx          generated OG image
+  robots.ts / sitemap.ts
+  booking/confirmation/        post-payment page
+  legal/[doc]/                 terms / privacy / cancellation (placeholder copy)
+  api/
+    availability/              GET slot statuses
+    bookings/                  POST create hold + start checkout
+    webhooks/stripe/           POST payment events
+components/
+  layout/    Header, MobileMenu, Footer, StickyBookBar
+  sections/  Hero, About, StudioSection, HowItWorks, Location
+  gallery/   StudioGallery (editorial grid / mobile swipe), Lightbox
+  booking/   BookingSystem (orchestrator), BookingCalendar, TimeSlots,
+             BookingForm, BookStudioButton
+  ui/        Container, Button, Reveal
+lib/
+  site.ts        contact / hours / currency config  (PLACEHOLDER)
+  studios.ts     studio content + images            (PLACEHOLDER)
+  booking.ts     pure slot / pricing / overlap logic
+  validation.ts  zod schemas for the API
+  payments/      provider abstraction + Stripe impl
+  server/bookings.ts   Supabase-backed booking operations
+  supabase/      admin client + row types
+  email.ts       Resend or console fallback
+supabase/
+  migrations/0001_init.sql     schema + RLS + overlap constraint
+  seed.sql
+```
+
+## Swapping images
+
+The gallery currently uses free-licensed photo-studio interiors from Unsplash,
+stored in `public/images/`. To use the studio's own photography, replace the
+files in `public/images/hero.jpg`, `public/images/about/` and
+`public/images/<slug>/` — keep the same filenames and no code changes are
+needed. Captions/alt text live in [`lib/studios.ts`](lib/studios.ts),
+[`Hero.tsx`](components/sections/Hero.tsx) and
+[`About.tsx`](components/sections/About.tsx). For remote hosting (Supabase
+Storage etc.) add the host to `images.remotePatterns` in
+[`next.config.ts`](next.config.ts).
+
+## Future admin panel
+
+The schema already supports it: `bookings` (view/calendar/payment status),
+`blackouts` (block days or hours — respected by the availability API),
+`studios` / `studio_images` (prices + galleries). Build the UI against the
+service-role client; RLS keeps the anon key read-only.
+
+## Scripts
+
+| command | |
+|---|---|
+| `npm run dev` | dev server |
+| `npm run build` | production build |
+| `npm run start` | serve the build |
+| `npm run lint` | eslint |
+
+## Known checks performed
+
+- `tsc --noEmit` clean · `next build` clean · `eslint` clean
+- API tested: availability (demo + past/closed logic), booking validation (400),
+  demo-mode guard (503), 404s
+- Responsive breakpoints targeted: 390 / 393 / 430 / 768 / 1024 / 1440 / 1920
+- `prefers-reduced-motion` honoured in all animations
