@@ -14,7 +14,9 @@ export type BookingConfirmationEmail = {
   startTime: string;
   endTime: string;
   durationHours: number;
+  addOns?: string[];
   totalPaid: string;
+  balanceDue?: string | null;
 };
 
 export async function sendBookingConfirmation(data: BookingConfirmationEmail): Promise<void> {
@@ -26,7 +28,9 @@ export async function sendBookingConfirmation(data: BookingConfirmationEmail): P
     `Studio:      ${data.studioName}`,
     `Date:        ${data.date}`,
     `Time:        ${data.startTime}–${data.endTime} (${data.durationHours}h)`,
-    `Total paid:  ${data.totalPaid}`,
+    ...(data.addOns && data.addOns.length ? [`Extras:      ${data.addOns.join(", ")}`] : []),
+    `Paid:        ${data.totalPaid}`,
+    ...(data.balanceDue ? [`Due at studio: ${data.balanceDue}`] : []),
     ``,
     `Address: ${site.contact.address.line1}, ${site.contact.address.line2}`,
     `Questions? ${site.contact.email}`,

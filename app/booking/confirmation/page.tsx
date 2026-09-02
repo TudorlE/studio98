@@ -20,14 +20,19 @@ export default async function ConfirmationPage({
 }) {
   const { booking: bookingId } = await searchParams;
 
+  const sym = site.booking.currencySymbol;
+
   let details: {
     id: string;
     studio: string;
     date: string;
     time: string;
     duration: number;
+    addOns: string[];
     total: string;
-    paid: boolean;
+    paid: string;
+    balance: string | null;
+    settled: boolean;
   } | null = null;
 
   if (bookingId && isSupabaseConfigured()) {
@@ -35,14 +40,20 @@ export default async function ConfirmationPage({
       const row = await getBooking(bookingId);
       if (row) {
         const slug = studios.find((s) => s.id === row.studio_id)?.slug ?? "studio-01";
+        const total = Number(row.total_price);
+        const paidAmount = Number(row.deposit_paid) || total;
+        const balance = Math.max(0, total - paidAmount);
         details = {
           id: row.id,
           studio: studioName(slug),
           date: row.date,
           time: `${row.start_time.slice(0, 5)} – ${row.end_time.slice(0, 5)}`,
           duration: row.duration,
-          total: `${site.booking.currencySymbol}${Number(row.total_price).toFixed(0)}`,
-          paid: row.payment_status === "paid",
+          addOns: (row.add_ons ?? []).map((a) => a.name),
+          total: `${sym}${total.toFixed(0)}`,
+          paid: `${sym}${paidAmount.toFixed(0)}`,
+          balance: balance > 0 ? `${sym}${balance.toFixed(0)}` : null,
+          settled: row.payment_status === "paid",
         };
       }
     } catch {
@@ -69,7 +80,7 @@ export default async function ConfirmationPage({
             Booking confirmed.
           </h1>
           <p className="mt-5 max-w-prose text-ink-soft">
-            {details?.paid === false
+            {details && !details.settled
               ? "We've received your booking. Payment is still pending — check your email for next steps."
               : "A confirmation email is on its way. Please arrive a few minutes early."}
           </p>
@@ -82,7 +93,11 @@ export default async function ConfirmationPage({
                 <Line label="Date" value={details.date} />
                 <Line label="Time" value={details.time} />
                 <Line label="Duration" value={`${details.duration} hour${details.duration > 1 ? "s" : ""}`} />
-                <Line label="Total paid" value={details.total} />
+                {details.addOns.length > 0 && (
+                  <Line label="Extras" value={details.addOns.join(", ")} />
+                )}
+                <Line label={details.balance ? "Paid" : "Total paid"} value={details.paid} />
+                {details.balance && <Line label="Due at studio" value={details.balance} />}
               </>
             )}
             {!details && (

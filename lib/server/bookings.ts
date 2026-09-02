@@ -1,18 +1,27 @@
 import "server-only";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
-import { studios, type StudioSlug } from "@/lib/studios";
+import { studios, addOnById, type StudioSlug } from "@/lib/studios";
 import {
   timeToMinutes,
   endTimeFor,
   computeSlotStatuses,
   localDateString,
+  minHoursForDate,
+  priceBreakdown,
 } from "@/lib/booking";
-import type { BookingRow } from "@/lib/supabase/types";
+import type { BookingRow, BookingAddOn } from "@/lib/supabase/types";
 
 export class BookingConflictError extends Error {
   constructor(msg = "That time is no longer available.") {
     super(msg);
     this.name = "BookingConflictError";
+  }
+}
+
+export class BookingRequestError extends Error {
+  constructor(msg: string) {
+    super(msg);
+    this.name = "BookingRequestError";
   }
 }
 
@@ -71,24 +80,38 @@ export type CreateHoldInput = {
   date: string;
   startTime: string;
   durationHours: number;
-  totalPrice: number;
+  addOnIds: string[];
   currency: string;
   customer: { name: string; email: string; phone: string };
 };
 
+export type HoldResult = {
+  booking: BookingRow;
+  breakdown: ReturnType<typeof priceBreakdown>;
+};
+
 /**
  * Insert a booking in `hold` state. Relies on:
- *  1. an explicit pre-check (fast, friendly error), and
- *  2. a Postgres exclusion constraint (authoritative — prevents the race).
+ *  1. request validation (duration min, lead time),
+ *  2. an explicit overlap pre-check (fast, friendly error), and
+ *  3. a Postgres exclusion constraint (authoritative — prevents the race).
+ *
+ * The price is always recomputed here — never trusted from the client.
  */
-export async function createHold(input: CreateHoldInput): Promise<BookingRow> {
+export async function createHold(input: CreateHoldInput): Promise<HoldResult> {
   const db = getSupabaseAdmin();
   const studioId = studioIdForSlug(input.slug);
   const endTime = endTimeFor(input.startTime, input.durationHours);
 
-  // Reject obviously-stale requests.
   if (input.date < localDateString(new Date())) {
     throw new BookingConflictError("That date is in the past.");
+  }
+
+  const minHours = minHoursForDate(input.slug, input.date);
+  if (input.durationHours < minHours) {
+    throw new BookingRequestError(
+      `This date needs a minimum booking of ${minHours} hour${minHours > 1 ? "s" : ""}.`,
+    );
   }
 
   const existing = await getBookedRanges(input.slug, input.date);
@@ -97,6 +120,22 @@ export async function createHold(input: CreateHoldInput): Promise<BookingRow> {
   if (existing.some((r) => start < r.end && r.start < end)) {
     throw new BookingConflictError();
   }
+
+  const breakdown = priceBreakdown({
+    slug: input.slug,
+    date: input.date,
+    durationHours: input.durationHours,
+    addOnIds: input.addOnIds,
+  });
+
+  const addOns: BookingAddOn[] = input.addOnIds
+    .map((id) => addOnById(id))
+    .filter((a): a is NonNullable<typeof a> => Boolean(a))
+    .map((a) => ({
+      id: a.id,
+      name: a.name,
+      amount: a.unit === "hour" ? a.price * breakdown.hours : a.price,
+    }));
 
   const { data, error } = await db
     .from("bookings")
@@ -109,7 +148,10 @@ export async function createHold(input: CreateHoldInput): Promise<BookingRow> {
       start_time: input.startTime,
       end_time: endTime,
       duration: input.durationHours,
-      total_price: input.totalPrice,
+      hourly_rate: breakdown.rate,
+      total_price: breakdown.subtotal,
+      deposit_paid: 0,
+      add_ons: addOns,
       currency: input.currency,
       payment_status: "pending",
       booking_status: "hold",
@@ -118,13 +160,12 @@ export async function createHold(input: CreateHoldInput): Promise<BookingRow> {
     .single();
 
   if (error) {
-    // 23P01 exclusion_violation / 23505 unique_violation → overlap
     if (error.code === "23P01" || error.code === "23505") {
       throw new BookingConflictError();
     }
     throw error;
   }
-  return data as BookingRow;
+  return { booking: data as BookingRow, breakdown };
 }
 
 export async function getBooking(id: string): Promise<BookingRow | null> {
@@ -136,17 +177,20 @@ export async function getBooking(id: string): Promise<BookingRow | null> {
 
 export async function markBookingPaid(
   id: string,
-  opts: { provider: string; reference: string },
+  opts: { provider: string; reference: string; amountPaid?: number },
 ): Promise<BookingRow | null> {
   const db = getSupabaseAdmin();
+  const update: Record<string, unknown> = {
+    payment_status: "paid",
+    booking_status: "confirmed",
+    payment_provider: opts.provider,
+    payment_reference: opts.reference,
+  };
+  if (typeof opts.amountPaid === "number") update.deposit_paid = opts.amountPaid;
+
   const { data, error } = await db
     .from("bookings")
-    .update({
-      payment_status: "paid",
-      booking_status: "confirmed",
-      payment_provider: opts.provider,
-      payment_reference: opts.reference,
-    })
+    .update(update)
     .eq("id", id)
     .select("*")
     .maybeSingle();

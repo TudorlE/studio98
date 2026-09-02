@@ -1,16 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createBookingSchema } from "@/lib/validation";
-import { calcTotal, endTimeFor } from "@/lib/booking";
+import { endTimeFor, formatMoney } from "@/lib/booking";
 import { site } from "@/lib/site";
 import { isSupabaseConfigured } from "@/lib/supabase/admin";
 import {
   createHold,
   markBookingPaid,
   BookingConflictError,
+  BookingRequestError,
   studioName,
 } from "@/lib/server/bookings";
 import { getPaymentProvider, isPaymentConfigured } from "@/lib/payments";
 import { sendBookingConfirmation } from "@/lib/email";
+import type { CheckoutLineItem } from "@/lib/payments/provider";
 import type { StudioSlug } from "@/lib/studios";
 
 export const dynamic = "force-dynamic";
@@ -32,9 +34,9 @@ export async function POST(req: NextRequest) {
   }
   const input = parsed.data;
   const slug = input.studio as StudioSlug;
-  const total = calcTotal(slug, input.durationHours);
   const currency = site.booking.currency;
   const origin = req.nextUrl.origin;
+  const endTime = endTimeFor(input.startTime, input.durationHours);
 
   if (!isSupabaseConfigured()) {
     return NextResponse.json(
@@ -47,45 +49,62 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // 1. Create the hold (authoritative overlap protection lives in Postgres).
+  // 1. Create the hold + compute the authoritative price server-side.
   let bookingId: string;
+  let breakdown;
   try {
-    const booking = await createHold({
+    const held = await createHold({
       slug,
       date: input.date,
       startTime: input.startTime,
       durationHours: input.durationHours,
-      totalPrice: total,
+      addOnIds: input.addOnIds,
       currency,
       customer: input.customer,
     });
-    bookingId = booking.id;
+    bookingId = held.booking.id;
+    breakdown = held.breakdown;
   } catch (err) {
     if (err instanceof BookingConflictError) {
       return NextResponse.json({ error: err.message, conflict: true }, { status: 409 });
+    }
+    if (err instanceof BookingRequestError) {
+      return NextResponse.json({ error: err.message }, { status: 422 });
     }
     console.error("[bookings] createHold", err);
     return NextResponse.json({ error: "Could not create booking" }, { status: 500 });
   }
 
-  const endTime = endTimeFor(input.startTime, input.durationHours);
-
-  // 2a. Payments configured → hand off to the provider's hosted checkout.
+  // 2a. Payments configured → hosted checkout.
   if (isPaymentConfigured()) {
     try {
       const provider = getPaymentProvider();
+
+      const lineItems: CheckoutLineItem[] =
+        breakdown.depositPercent >= 100
+          ? [breakdown.studioLine, ...breakdown.addOnLines].map((l) => ({
+              name: `${studioName(slug)} — ${l.label}`,
+              description: `${input.date} · ${input.startTime}–${endTime}`,
+              amount: Math.round(l.amount * 100),
+              currency,
+              quantity: 1,
+            }))
+          : [
+              {
+                name: `${studioName(slug)} — deposit (${breakdown.depositPercent}%)`,
+                description: `${input.date} · ${input.startTime}–${endTime} · balance ${formatMoney(
+                  breakdown.dueAtStudio,
+                )} at the studio`,
+                amount: Math.round(breakdown.dueNow * 100),
+                currency,
+                quantity: 1,
+              },
+            ];
+
       const session = await provider.createCheckoutSession({
         bookingId,
         customerEmail: input.customer.email,
-        lineItems: [
-          {
-            name: `${studioName(slug)} — ${input.durationHours}h`,
-            description: `${input.date} · ${input.startTime}–${endTime}`,
-            amount: Math.round(total * 100),
-            currency,
-            quantity: 1,
-          },
-        ],
+        lineItems,
         successUrl: `${origin}/booking/confirmation?booking=${bookingId}`,
         cancelUrl: `${origin}/?booking=cancelled#booking`,
         metadata: { bookingId, studio: slug, date: input.date, startTime: input.startTime },
@@ -99,7 +118,11 @@ export async function POST(req: NextRequest) {
 
   // 2b. No payment provider → confirm immediately (demo / manual-payment mode).
   try {
-    await markBookingPaid(bookingId, { provider: "manual", reference: "manual" });
+    await markBookingPaid(bookingId, {
+      provider: "manual",
+      reference: "manual",
+      amountPaid: breakdown.dueNow,
+    });
     await sendBookingConfirmation({
       to: input.customer.email,
       bookingId,
@@ -108,7 +131,9 @@ export async function POST(req: NextRequest) {
       startTime: input.startTime,
       endTime,
       durationHours: input.durationHours,
-      totalPaid: `${site.booking.currencySymbol}${total.toFixed(0)}`,
+      addOns: breakdown.addOnLines.map((l) => l.label),
+      totalPaid: formatMoney(breakdown.dueNow),
+      balanceDue: breakdown.dueAtStudio > 0 ? formatMoney(breakdown.dueAtStudio) : null,
     });
   } catch (err) {
     console.error("[bookings] manual confirm", err);

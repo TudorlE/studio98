@@ -67,6 +67,25 @@ Double-booking is prevented at two levels:
 
 Cancelled bookings automatically free their slot.
 
+### Booking rules
+
+Modelled on how studio-rental widgets (e.g. Mayak / Cue) work:
+
+- **Weekday vs weekend rate** — `pricePerHour` / `weekendPricePerHour` per studio
+  ([`lib/studios.ts`](lib/studios.ts)); weekend days set in
+  [`lib/site.ts`](lib/site.ts) (`booking.weekendDays`).
+- **Minimum hours** — `minHours` / `weekendMinHours` per studio; shorter
+  durations are disabled in the picker and rejected by the API (422).
+- **Add-on services** — à-la-carte extras (cyclorama, lighting kit, assistant …)
+  in `studioAddOns`; `unit: "flat"` charged once, `unit: "hour"` × the booking
+  length. Stored on the booking as `add_ons` JSON.
+- **Deposit** — `booking.depositPercent` in [`lib/site.ts`](lib/site.ts).
+  `100` = pay in full; lower takes a deposit online and shows the balance as
+  "due at the studio" on checkout, the confirmation page and the email.
+
+Prices are **always recomputed server-side** in `createHold` — the client total
+is display-only.
+
 ## Enabling payments
 
 Set `STRIPE_SECRET_KEY` + `STRIPE_WEBHOOK_SECRET` (and
@@ -112,7 +131,7 @@ components/
   sections/  Hero, About, StudioSection, HowItWorks, Location
   gallery/   StudioGallery (editorial grid / mobile swipe), Lightbox
   booking/   BookingSystem (orchestrator), BookingCalendar, TimeSlots,
-             BookingForm, BookStudioButton
+             AddOns, BookingForm, BookStudioButton
   ui/        Container, Button, Reveal
 lib/
   site.ts        contact / hours / currency config  (PLACEHOLDER)

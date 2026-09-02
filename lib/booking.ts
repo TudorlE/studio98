@@ -2,7 +2,7 @@
  * Booking domain logic — pure, framework-free, shared by client + server.
  */
 import { site } from "@/lib/site";
-import { studios, type StudioSlug } from "@/lib/studios";
+import { studios, addOnById, type StudioSlug } from "@/lib/studios";
 
 export type TimeSlot = {
   /** "09:00" */
@@ -41,17 +41,96 @@ export function generateDaySlots(): TimeSlot[] {
 
 export const durationOptions = site.booking.durations;
 
-export function getStudioPrice(slug: StudioSlug): number {
-  const s = studios.find((x) => x.slug === slug);
-  return s ? s.pricePerHour : 0;
-}
-
-export function calcTotal(slug: StudioSlug, durationHours: number): number {
-  return getStudioPrice(slug) * durationHours;
-}
-
 export function formatMoney(amount: number): string {
   return `${site.booking.currencySymbol}${amount.toFixed(0)}`;
+}
+
+/** Is this local date (YYYY-MM-DD) a weekend per site config? */
+export function isWeekendDate(dateStr: string): boolean {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const day = new Date(y, m - 1, d).getDay();
+  return (site.booking.weekendDays as readonly number[]).includes(day);
+}
+
+function studioOrThrow(slug: StudioSlug) {
+  const s = studios.find((x) => x.slug === slug);
+  if (!s) throw new Error(`Unknown studio slug: ${slug}`);
+  return s;
+}
+
+/** Hourly rate that applies on a given date. */
+export function rateForDate(slug: StudioSlug, dateStr: string): number {
+  const s = studioOrThrow(slug);
+  return isWeekendDate(dateStr) ? s.weekendPricePerHour : s.pricePerHour;
+}
+
+/** Minimum bookable hours on a given date. */
+export function minHoursForDate(slug: StudioSlug, dateStr: string): number {
+  const s = studioOrThrow(slug);
+  return isWeekendDate(dateStr) ? s.weekendMinHours : s.minHours;
+}
+
+export type PriceLine = { label: string; amount: number };
+
+export type PriceBreakdown = {
+  weekend: boolean;
+  rate: number;
+  hours: number;
+  studioLine: PriceLine;
+  addOnLines: PriceLine[];
+  subtotal: number;
+  depositPercent: number;
+  /** Charged online now. Equals subtotal when depositPercent is 100. */
+  dueNow: number;
+  /** Collected at the studio. 0 when paying in full. */
+  dueAtStudio: number;
+};
+
+export function priceBreakdown(params: {
+  slug: StudioSlug;
+  date: string;
+  durationHours: number;
+  addOnIds?: string[];
+}): PriceBreakdown {
+  const { slug, date, durationHours } = params;
+  const hours = Math.max(1, Math.round(durationHours));
+  const weekend = isWeekendDate(date);
+  const rate = rateForDate(slug, date);
+
+  const studioLine: PriceLine = {
+    label: `Studio · ${hours}h${weekend ? " (weekend)" : ""}`,
+    amount: rate * hours,
+  };
+
+  const addOnLines: PriceLine[] = (params.addOnIds ?? [])
+    .map((id) => addOnById(id))
+    .filter((a): a is NonNullable<typeof a> => Boolean(a))
+    .map((a) => ({
+      label: a.unit === "hour" ? `${a.name} · ${hours}h` : a.name,
+      amount: a.unit === "hour" ? a.price * hours : a.price,
+    }));
+
+  const subtotal = studioLine.amount + addOnLines.reduce((n, l) => n + l.amount, 0);
+  const depositPercent = clampPercent(site.booking.depositPercent);
+  const dueNow =
+    depositPercent >= 100 ? subtotal : Math.round((subtotal * depositPercent) / 100);
+
+  return {
+    weekend,
+    rate,
+    hours,
+    studioLine,
+    addOnLines,
+    subtotal,
+    depositPercent,
+    dueNow,
+    dueAtStudio: Math.max(0, subtotal - dueNow),
+  };
+}
+
+function clampPercent(n: number): number {
+  if (!Number.isFinite(n)) return 100;
+  return Math.min(100, Math.max(1, Math.round(n)));
 }
 
 /** Two [start,end) ranges in minutes overlap. */

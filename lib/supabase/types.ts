@@ -25,6 +25,12 @@ export interface StudioImageRow {
   sort_order: number;
 }
 
+export interface BookingAddOn {
+  id: string;
+  name: string;
+  amount: number;
+}
+
 export interface BookingRow {
   id: string;
   studio_id: string;
@@ -35,7 +41,10 @@ export interface BookingRow {
   start_time: string; // time
   end_time: string; // time
   duration: number; // hours
+  hourly_rate: number;
   total_price: number;
+  deposit_paid: number;
+  add_ons: BookingAddOn[];
   currency: string;
   payment_status: PaymentStatus;
   booking_status: BookingStatus;

@@ -47,7 +47,12 @@ export const site = {
     minLeadHours: 2,
     currency: "EUR",
     currencySymbol: "€",
-    durations: [1, 2, 3, 4, 5],
+    durations: [1, 2, 3, 4, 5, 6],
+    // Days that use the weekend rate + weekend minimum (0 = Sunday … 6 = Saturday).
+    weekendDays: [6, 0],
+    // Share of the total charged online now. 100 = pay in full.
+    // Set e.g. 30 to take a 30% deposit and collect the balance at the studio.
+    depositPercent: 100,
   },
 } as const;
 

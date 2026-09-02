@@ -26,13 +26,42 @@ export type Studio = {
   description: string;
   area: string; // placeholder surface
   capacity: string;
-  pricePerHour: number; // in currency units (EUR)
+  /** Weekday hourly rate, in currency units (EUR). */
+  pricePerHour: number;
+  /** Weekend (Sat/Sun) hourly rate. */
+  weekendPricePerHour: number;
+  /** Minimum bookable hours on a weekday / on a weekend. */
+  minHours: number;
+  weekendMinHours: number;
   equipment: string[];
   amenities: string[];
   images: StudioImage[];
   /** Visual identity toggle for the section (light / dark treatment). */
   theme: "light" | "dark";
 };
+
+/**
+ * Optional extras added to a booking, à la carte.
+ * `unit: "flat"` — charged once. `unit: "hour"` — multiplied by the booking length.
+ * All example values — set real ones with the studio owner.
+ */
+export type AddOn = {
+  id: string;
+  name: string;
+  note: string;
+  price: number;
+  unit: "flat" | "hour";
+};
+
+export const studioAddOns: AddOn[] = [
+  { id: "cyclorama", name: "Cyclorama sweep", note: "Pre-set white cyc wall", price: 20, unit: "flat" },
+  { id: "lighting-kit", name: "Lighting kit", note: "Strobe heads, softboxes, stands", price: 25, unit: "flat" },
+  { id: "backdrop", name: "Extra backdrop roll", note: "Colour of your choice", price: 10, unit: "flat" },
+  { id: "assistant", name: "On-site assistant", note: "Lighting & set support", price: 15, unit: "hour" },
+  { id: "glam", name: "Hair & make-up station", note: "Mirror, ring light, chair", price: 15, unit: "flat" },
+];
+
+export const addOnById = (id: string) => studioAddOns.find((a) => a.id === id);
 
 // Example imagery: free-licensed photo-studio interiors from Unsplash.
 // Replace with the studio's own photography by dropping files into
@@ -55,6 +84,9 @@ export const studios: Studio[] = [
     area: "00 m²",
     capacity: "Up to 00 people",
     pricePerHour: 25,
+    weekendPricePerHour: 30,
+    minHours: 1,
+    weekendMinHours: 2,
     equipment: [
       "Continuous LED panels (placeholder)",
       "Seamless paper backdrops — white / grey / black",
@@ -81,6 +113,9 @@ export const studios: Studio[] = [
     area: "00 m²",
     capacity: "Up to 00 people",
     pricePerHour: 30,
+    weekendPricePerHour: 35,
+    minHours: 2,
+    weekendMinHours: 3,
     equipment: [
       "Strobe kit with softboxes (placeholder)",
       "RGB & tungsten fixtures",
