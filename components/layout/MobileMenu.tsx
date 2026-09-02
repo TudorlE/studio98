@@ -42,7 +42,7 @@ export function MobileMenu({ open, onClose }: { open: boolean; onClose: () => vo
         >
           <div className="flex h-full flex-col px-5 pb-10 pt-5 sm:px-8">
             <div className="flex items-center justify-between">
-              <Logo className="text-ink" />
+              <Logo />
               <button
                 onClick={onClose}
                 className="h-11 px-3 text-[0.7rem] font-medium uppercase tracking-[0.18em] text-ink-soft"

@@ -67,7 +67,7 @@ export default async function ConfirmationPage({
       <header className="border-b border-line">
         <Container className="flex h-16 items-center sm:h-20">
           <Link href="/" aria-label={site.name}>
-            <Logo className="text-ink" />
+            <Logo />
           </Link>
         </Container>
       </header>

@@ -22,7 +22,7 @@ export function Footer() {
     <footer className="border-t border-line bg-paper py-16 sm:py-20">
       <Container>
         <div className="flex flex-col gap-10 sm:flex-row sm:items-start sm:justify-between">
-          <Logo className="h-8 text-ink sm:h-9" />
+          <Logo className="h-11 sm:h-12" />
 
           <nav className="flex flex-wrap gap-x-8 gap-y-3 text-sm text-ink-soft">
             {nav.map((l) => (
