@@ -40,8 +40,6 @@ export type Studio = {
 const galleryFor = (slug: string): StudioImage[] => [
   { src: `/images/${slug}/01.jpg`, alt: "Studio interior — example image", span: "wide" },
   { src: `/images/${slug}/02.jpg`, alt: "Studio detail — example image", span: "tall" },
-  { src: `/images/${slug}/03.jpg`, alt: "Studio corner — example image", span: "square" },
-  { src: `/images/${slug}/04.jpg`, alt: "Studio lighting setup — example image", span: "square" },
   { src: `/images/${slug}/05.jpg`, alt: "Studio wide view — example image", span: "wide" },
 ];
 
@@ -54,8 +52,8 @@ export const studios: Studio[] = [
     subtitle: "THE LIGHT SPACE",
     description:
       "A bright, high-ceiling room with large north-facing windows and warm white walls. Built for natural-light photography, editorial shoots, interviews and intimate creative sessions.",
-    area: "00 m² (placeholder)",
-    capacity: "Up to 00 people (placeholder)",
+    area: "00 m²",
+    capacity: "Up to 00 people",
     pricePerHour: 25,
     equipment: [
       "Continuous LED panels (placeholder)",
@@ -80,8 +78,8 @@ export const studios: Studio[] = [
     subtitle: "THE DARK SPACE",
     description:
       "A blacked-out room with full lighting control for cinematic video, product photography and moody portraiture. No daylight spill — you shape every beam.",
-    area: "00 m² (placeholder)",
-    capacity: "Up to 00 people (placeholder)",
+    area: "00 m²",
+    capacity: "Up to 00 people",
     pricePerHour: 30,
     equipment: [
       "Strobe kit with softboxes (placeholder)",

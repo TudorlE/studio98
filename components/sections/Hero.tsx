@@ -30,16 +30,7 @@ export function Hero() {
       </motion.div>
 
       <div className="relative z-10 mx-auto flex h-full w-full max-w-[1600px] flex-col justify-end px-5 pb-14 sm:px-8 sm:pb-20 lg:px-14 lg:pb-24">
-        <motion.p
-          className="eyebrow"
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.9, ease, delay: 0.3 }}
-        >
-          Photography — Film — Events
-        </motion.p>
-
-        <h1 className="display mt-5 max-w-[15ch] text-[12.5vw] leading-[0.94] sm:text-[9vw] lg:text-[7.4vw]">
+        <h1 className="display max-w-[15ch] text-[12.5vw] leading-[0.94] sm:text-[9vw] lg:text-[7.4vw]">
           {["Space for your", "next creation."].map((line, i) => (
             <span key={line} className="block overflow-hidden">
               <motion.span
@@ -54,32 +45,17 @@ export function Hero() {
           ))}
         </h1>
 
-        <motion.p
-          className="mt-6 max-w-md text-sm text-ink-soft sm:text-base"
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.9, ease, delay: 0.8 }}
-        >
-          Two studios for photography, film and the things in between.
-        </motion.p>
-
         <motion.div
-          className="mt-9 flex flex-col gap-3 sm:flex-row"
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.9, ease, delay: 0.95 }}
+          transition={{ duration: 0.9, ease, delay: 0.9 }}
+          className="mt-9"
         >
           <Link
             href="#booking"
             className="inline-flex h-12 items-center justify-center bg-ink px-8 text-[0.7rem] font-medium uppercase tracking-[0.18em] text-paper transition-colors hover:bg-ink-soft"
           >
             Book a studio
-          </Link>
-          <Link
-            href="#studio-01"
-            className="inline-flex h-12 items-center justify-center border border-ink/30 bg-paper/70 px-8 text-[0.7rem] font-medium uppercase tracking-[0.18em] backdrop-blur-sm transition-colors hover:bg-ink hover:text-paper"
-          >
-            Explore studios
           </Link>
         </motion.div>
       </div>

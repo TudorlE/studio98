@@ -3,7 +3,7 @@ import { Reveal } from "@/components/ui/Reveal";
 import { site } from "@/lib/site";
 
 export function Location() {
-  const { contact, social } = site;
+  const { contact } = site;
 
   return (
     <section
@@ -43,19 +43,6 @@ export function Location() {
                   <dd className="mt-2">
                     <a href={contact.emailHref} className="text-ink-soft hover:text-ink">
                       {contact.email}
-                    </a>
-                  </dd>
-                </div>
-                <div>
-                  <dt className="eyebrow">Instagram</dt>
-                  <dd className="mt-2">
-                    <a
-                      href={social.instagram}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-ink-soft hover:text-ink"
-                    >
-                      @studio98
                     </a>
                   </dd>
                 </div>

@@ -6,7 +6,6 @@ import { Container } from "@/components/ui/Container";
 import { Reveal } from "@/components/ui/Reveal";
 import { cn } from "@/lib/cn";
 import { studios, type StudioSlug } from "@/lib/studios";
-import { site } from "@/lib/site";
 import {
   calcTotal,
   endTimeFor,
@@ -226,15 +225,6 @@ export function BookingSystem() {
                         </button>
                       ))}
                     </div>
-                    {duration === 5 && (
-                      <p className="mt-3 text-sm text-ink-soft">
-                        Sessions of 5 hours or more are booked as a 5-hour block here — email{" "}
-                        <a href={site.contact.emailHref} className="underline">
-                          {site.contact.email}
-                        </a>{" "}
-                        to extend.
-                      </p>
-                    )}
                   </Step>
                 </motion.div>
               )}
@@ -326,9 +316,7 @@ export function BookingSystem() {
                   </span>
                 </div>
                 <p className="mt-4 text-xs leading-relaxed text-ink-faint">
-                  Card details are never stored on this site — payment is handled on a
-                  secure checkout page. Free cancellation up to 48h before your slot
-                  (placeholder policy).
+                  Secure checkout. Card details never touch this site.
                 </p>
               </div>
             </div>
