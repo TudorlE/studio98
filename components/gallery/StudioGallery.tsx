@@ -6,11 +6,13 @@ import { cn } from "@/lib/cn";
 import type { StudioImage } from "@/lib/studios";
 import { Lightbox } from "./Lightbox";
 
-const spanClass: Record<StudioImage["span"], string> = {
-  wide: "sm:col-span-7 aspect-4/3",
-  tall: "sm:col-span-5 sm:row-span-2 aspect-3/4",
-  square: "sm:col-span-5 aspect-square",
-};
+// Fixed editorial layout for a 3-image set. Each cell is sized purely by its
+// column width × aspect ratio, so there are no row-span / auto-row surprises.
+const LAYOUT = [
+  "sm:col-span-7 aspect-[4/3]",
+  "sm:col-span-5 aspect-[3/4]",
+  "sm:col-span-8 sm:col-start-3 aspect-[3/2]",
+];
 
 export function StudioGallery({
   images,
@@ -20,40 +22,64 @@ export function StudioGallery({
   theme: "light" | "dark";
 }) {
   const [open, setOpen] = useState<number | null>(null);
+  const bg = theme === "dark" ? "bg-night-line" : "bg-paper-deep";
 
   return (
     <>
-      {/* Mobile: swipeable rail. Desktop: editorial asymmetric grid. */}
-      <ul className="no-scrollbar -mx-5 flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 sm:mx-0 sm:grid sm:auto-rows-[minmax(0,1fr)] sm:grid-cols-12 sm:gap-5 sm:overflow-visible sm:px-0">
+      {/* Mobile: horizontal snap rail */}
+      <ul className="no-scrollbar -mx-5 flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 sm:hidden">
         {images.map((img, i) => (
           <li
             key={img.src}
-            className={cn(
-              "relative w-[82%] shrink-0 snap-center overflow-hidden sm:w-auto",
-              theme === "dark" ? "bg-night-line" : "bg-paper-deep",
-              "aspect-3/4 sm:aspect-auto",
-              spanClass[img.span],
-            )}
+            className={cn("relative aspect-[3/4] w-[80%] shrink-0 snap-center overflow-hidden", bg)}
           >
-            <button
-              type="button"
-              onClick={() => setOpen(i)}
-              className="group absolute inset-0"
-              aria-label={`Open image ${i + 1} full screen`}
-            >
-              <Image
-                src={img.src}
-                alt={img.alt}
-                fill
-                sizes="(max-width: 640px) 82vw, 40vw"
-                className="object-cover transition-transform duration-[1.2s] ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.03]"
-              />
-            </button>
+            <GalleryButton img={img} index={i} onOpen={setOpen} sizes="80vw" />
+          </li>
+        ))}
+      </ul>
+
+      {/* Desktop: asymmetric editorial grid */}
+      <ul className="hidden gap-6 sm:grid sm:grid-cols-12">
+        {images.map((img, i) => (
+          <li
+            key={img.src}
+            className={cn("relative overflow-hidden", bg, LAYOUT[i] ?? "sm:col-span-6 aspect-[4/3]")}
+          >
+            <GalleryButton img={img} index={i} onOpen={setOpen} sizes="45vw" />
           </li>
         ))}
       </ul>
 
       <Lightbox images={images} index={open} onClose={() => setOpen(null)} onIndexChange={setOpen} />
     </>
+  );
+}
+
+function GalleryButton({
+  img,
+  index,
+  onOpen,
+  sizes,
+}: {
+  img: StudioImage;
+  index: number;
+  onOpen: (i: number) => void;
+  sizes: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => onOpen(index)}
+      className="group absolute inset-0"
+      aria-label={`Open image ${index + 1} full screen`}
+    >
+      <Image
+        src={img.src}
+        alt={img.alt}
+        fill
+        sizes={sizes}
+        className="object-cover transition-transform duration-[1.2s] ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.03]"
+      />
+    </button>
   );
 }

@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { cn } from "@/lib/cn";
 import type { StudioSlug } from "@/lib/studios";
+import { smoothScrollToHash } from "@/components/ui/AnchorLink";
 import { requestStudioSelection } from "./selectStudio";
 
 export function BookStudioButton({
@@ -15,9 +15,13 @@ export function BookStudioButton({
   tone?: "ink" | "paper";
 }) {
   return (
-    <Link
+    <a
       href="#booking"
-      onClick={() => requestStudioSelection(slug)}
+      onClick={(e) => {
+        e.preventDefault();
+        requestStudioSelection(slug);
+        smoothScrollToHash("#booking");
+      }}
       className={cn(
         "inline-flex h-12 items-center justify-center px-8 text-[0.7rem] font-medium uppercase tracking-[0.18em] transition-colors",
         tone === "ink"
@@ -26,6 +30,6 @@ export function BookStudioButton({
       )}
     >
       {label}
-    </Link>
+    </a>
   );
 }

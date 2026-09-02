@@ -128,11 +128,11 @@ app/
     webhooks/stripe/           POST payment events
 components/
   layout/    Header, MobileMenu, Footer, StickyBookBar
-  sections/  Hero, About, StudioSection, HowItWorks, Location
+  sections/  Hero, About, StudioSection, Location
   gallery/   StudioGallery (editorial grid / mobile swipe), Lightbox
   booking/   BookingSystem (orchestrator), BookingCalendar, TimeSlots,
              AddOns, BookingForm, BookStudioButton
-  ui/        Container, Button, Reveal
+  ui/        Container, Button, Reveal, AnchorLink (smooth in-page scroll), Logo
 lib/
   site.ts        contact / hours / currency config  (PLACEHOLDER)
   studios.ts     studio content + images            (PLACEHOLDER)
@@ -158,6 +158,14 @@ needed. Captions/alt text live in [`lib/studios.ts`](lib/studios.ts),
 [`About.tsx`](components/sections/About.tsx). For remote hosting (Supabase
 Storage etc.) add the host to `images.remotePatterns` in
 [`next.config.ts`](next.config.ts).
+
+## Logo
+
+[`components/ui/Logo.tsx`](components/ui/Logo.tsx) is an inline SVG re-creation
+of the STUDIO 98 mark — line art that inherits `currentColor`, so it works on
+any background. `public/logo.svg` holds the same drawing as a standalone file.
+To use the real brand export, replace the SVG body in `Logo.tsx` (or point it
+at your file).
 
 ## Future admin panel
 

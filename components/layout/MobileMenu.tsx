@@ -1,12 +1,20 @@
 "use client";
 
 import { useEffect } from "react";
-import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { navLinks } from "@/lib/nav";
 import { site } from "@/lib/site";
+import { smoothScrollToHash } from "@/components/ui/AnchorLink";
+import { Logo } from "@/components/ui/Logo";
 
 export function MobileMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
+  // Close first (restores body scroll), then scroll on the next tick.
+  const navigate = (hash: string) => (e: React.MouseEvent) => {
+    e.preventDefault();
+    onClose();
+    setTimeout(() => smoothScrollToHash(hash), 70);
+  };
+
   useEffect(() => {
     if (!open) return;
     const prev = document.body.style.overflow;
@@ -34,7 +42,7 @@ export function MobileMenu({ open, onClose }: { open: boolean; onClose: () => vo
         >
           <div className="flex h-full flex-col px-5 pb-10 pt-5 sm:px-8">
             <div className="flex items-center justify-between">
-              <span className="font-serif text-lg tracking-tight">{site.name}</span>
+              <Logo className="text-ink" />
               <button
                 onClick={onClose}
                 className="h-11 px-3 text-[0.7rem] font-medium uppercase tracking-[0.18em] text-ink-soft"
@@ -51,25 +59,25 @@ export function MobileMenu({ open, onClose }: { open: boolean; onClose: () => vo
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: 0.08 + i * 0.05, ease: [0.22, 1, 0.36, 1] }}
                 >
-                  <Link
+                  <a
                     href={link.href}
-                    onClick={onClose}
+                    onClick={navigate(link.href)}
                     className="block py-2 font-serif text-[2.75rem] leading-tight tracking-tight"
                   >
                     {link.label}
-                  </Link>
+                  </a>
                 </motion.div>
               ))}
             </nav>
 
             <div className="mt-10 border-t border-line pt-6">
-              <Link
+              <a
                 href="#booking"
-                onClick={onClose}
+                onClick={navigate("#booking")}
                 className="flex h-14 items-center justify-center bg-ink text-[0.72rem] font-medium uppercase tracking-[0.18em] text-paper"
               >
                 Book a studio
-              </Link>
+              </a>
               <div className="mt-6 flex flex-col gap-1 text-sm text-ink-soft">
                 <a href={site.contact.phoneHref}>{site.contact.phone}</a>
                 <a href={site.contact.emailHref}>{site.contact.email}</a>

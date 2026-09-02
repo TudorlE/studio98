@@ -1,9 +1,9 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
 import { ArrowDown } from "lucide-react";
+import { AnchorLink } from "@/components/ui/AnchorLink";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
@@ -51,12 +51,12 @@ export function Hero() {
           transition={{ duration: 0.9, ease, delay: 0.9 }}
           className="mt-9"
         >
-          <Link
+          <AnchorLink
             href="#booking"
             className="inline-flex h-12 items-center justify-center bg-ink px-8 text-[0.7rem] font-medium uppercase tracking-[0.18em] text-paper transition-colors hover:bg-ink-soft"
           >
             Book a studio
-          </Link>
+          </AnchorLink>
         </motion.div>
       </div>
 

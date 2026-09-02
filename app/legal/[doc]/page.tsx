@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { Container } from "@/components/ui/Container";
 import { Footer } from "@/components/layout/Footer";
+import { Logo } from "@/components/ui/Logo";
 import { site } from "@/lib/site";
 
 const DOCS = {
@@ -64,8 +65,8 @@ export default async function LegalPage({
     <>
       <header className="border-b border-line">
         <Container className="flex h-16 items-center sm:h-20">
-          <Link href="/" className="font-serif text-lg tracking-tight sm:text-xl">
-            {site.name}
+          <Link href="/" aria-label={site.name}>
+            <Logo className="text-ink" />
           </Link>
         </Container>
       </header>

@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
+import { AnchorLink } from "@/components/ui/AnchorLink";
 
 export function StickyBookBar() {
   const [visible, setVisible] = useState(false);
@@ -35,12 +35,12 @@ export function StickyBookBar() {
           exit={{ y: 80, opacity: 0 }}
           transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
         >
-          <Link
+          <AnchorLink
             href="#booking"
             className="flex h-14 items-center justify-center bg-ink text-[0.72rem] font-medium uppercase tracking-[0.18em] text-paper shadow-[0_-8px_30px_rgba(17,17,17,0.12)]"
           >
             Book a studio
-          </Link>
+          </AnchorLink>
         </motion.div>
       )}
     </AnimatePresence>

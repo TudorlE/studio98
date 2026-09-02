@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { Container } from "@/components/ui/Container";
+import { AnchorLink } from "@/components/ui/AnchorLink";
+import { Logo } from "@/components/ui/Logo";
 import { site } from "@/lib/site";
 
 const nav = [
@@ -20,13 +22,13 @@ export function Footer() {
     <footer className="border-t border-line bg-paper py-16 sm:py-20">
       <Container>
         <div className="flex flex-col gap-10 sm:flex-row sm:items-start sm:justify-between">
-          <p className="font-serif text-2xl tracking-tight">{site.name}</p>
+          <Logo className="h-8 text-ink sm:h-9" />
 
           <nav className="flex flex-wrap gap-x-8 gap-y-3 text-sm text-ink-soft">
             {nav.map((l) => (
-              <Link key={l.label} href={l.href} className="transition-colors hover:text-ink">
+              <AnchorLink key={l.label} href={l.href} className="transition-colors hover:text-ink">
                 {l.label}
-              </Link>
+              </AnchorLink>
             ))}
           </nav>
 

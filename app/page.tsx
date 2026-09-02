@@ -4,7 +4,6 @@ import { StickyBookBar } from "@/components/layout/StickyBookBar";
 import { Hero } from "@/components/sections/Hero";
 import { About } from "@/components/sections/About";
 import { StudioSection } from "@/components/sections/StudioSection";
-import { HowItWorks } from "@/components/sections/HowItWorks";
 import { Location } from "@/components/sections/Location";
 import { BookingSystem } from "@/components/booking/BookingSystem";
 import { studios } from "@/lib/studios";
@@ -42,7 +41,6 @@ export default function Home() {
         <StudioSection studio={studio01} />
         <StudioSection studio={studio02} />
         <BookingSystem />
-        <HowItWorks />
         <Location />
       </main>
       <Footer />
