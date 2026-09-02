@@ -26,10 +26,11 @@ export function Hero() {
           sizes="100vw"
           className="object-cover"
         />
-        <div className="absolute inset-0 bg-ink/10" />
+        {/* legibility scrim — darker top & bottom, clear middle */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(14,14,13,0.42),rgba(14,14,13,0.12)_28%,rgba(14,14,13,0.10)_62%,rgba(14,14,13,0.62))]" />
       </motion.div>
 
-      <div className="relative z-10 mx-auto flex h-full w-full max-w-[1600px] flex-col justify-end px-5 pb-14 sm:px-8 sm:pb-20 lg:px-14 lg:pb-24">
+      <div className="on-night relative z-10 mx-auto flex h-full w-full max-w-[1600px] flex-col justify-end px-5 pb-14 text-paper sm:px-8 sm:pb-20 lg:px-14 lg:pb-24">
         <h1 className="display max-w-[15ch] text-[12.5vw] leading-[0.94] sm:text-[9vw] lg:text-[7.4vw]">
           {["Space for your", "next creation."].map((line, i) => (
             <span key={line} className="block overflow-hidden">
@@ -53,7 +54,7 @@ export function Hero() {
         >
           <AnchorLink
             href="#booking"
-            className="inline-flex h-12 items-center justify-center bg-ink px-8 text-[0.7rem] font-medium uppercase tracking-[0.18em] text-paper transition-colors hover:bg-ink-soft"
+            className="inline-flex h-12 items-center justify-center bg-paper px-8 text-[0.7rem] font-medium uppercase tracking-[0.18em] text-ink transition-colors hover:bg-paper-deep"
           >
             Book a studio
           </AnchorLink>
@@ -61,7 +62,7 @@ export function Hero() {
       </div>
 
       <motion.div
-        className="absolute bottom-6 left-1/2 z-10 -translate-x-1/2 text-ink-soft"
+        className="absolute bottom-6 left-1/2 z-10 -translate-x-1/2 text-paper/70"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 1, delay: 1.4 }}
