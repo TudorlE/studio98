@@ -7,22 +7,32 @@ studios, with a real booking + payment architecture behind it.
 > email, social links and images are stand-ins. Search the codebase for
 > `placeholder` / `TODO` and replace before launch.
 
-## Homepage: 3 full screens, nothing to scroll for
+## Homepage: one screen, nothing to scroll for
 
-The homepage is exactly three full-screen pages — **Hero → Studio 01 → Studio
-02** — with scroll-snap between them (`ScrollSnapEffect`), so it never feels
-like an endless scroll. Everything a visitor needs (see the studios, book one)
-is visible without hunting for it. A slim footer (contact + legal) sits after
-page 3 for anyone who scrolls further.
+The homepage is a single fixed screen — the hero photo, a headline, and two
+square tiles ("Studio 01" / "Studio 02"). `<NoScrollEffect>` locks page
+scrolling while it's mounted, so there is nothing below the fold to miss.
+
+Tapping a tile opens `<StudioDetails>` — a full-screen "photos and details"
+overlay for that studio (bigger photo, description, price, a gallery icon
+that opens the lightbox, and a "Book Studio 0X" button). State lives in
+`StudioDetailsContext`
+([`components/sections/StudioDetailsContext.tsx`](components/sections/StudioDetailsContext.tsx)),
+so the menu can open the same overlay as the tiles
+(`useStudioDetails().openDetails("studio-01")`).
 
 **Booking is a slide-over panel, not a page.** Any "Book a studio" button
-(header, hero, either studio page) opens `<BookingDrawer>` — a right-side
+(header, or a studio's details overlay) opens `<BookingDrawer>` — a right-side
 panel on desktop (`sm:w-[420px] sm:max-w-[46vw]`, always under half the
 screen) and a full-screen panel on mobile. It walks through: studio → day →
 duration → time → extras → your details, with a running price on a sticky
 button at the bottom. State lives in `BookingDrawerContext`
 ([`components/booking/BookingDrawerContext.tsx`](components/booking/BookingDrawerContext.tsx)),
 so any component can call `useBookingDrawer().openBooking("studio-01")`.
+
+The Footer, and its legal/contact links, live on the confirmation and legal
+pages; on the homepage that same information is one tap away in the menu
+(top-left icon).
 
 ## Stack
 
@@ -144,10 +154,14 @@ app/
     bookings/                  POST create hold + start checkout
     webhooks/stripe/           POST payment events
 components/
-  layout/    Header (centered logo + Book button, scroll-aware), MobileMenu
-             (also the desktop side menu), Footer, ScrollSnapEffect
-  sections/  Hero, StudioSection — both full-screen "cover" pages
-  gallery/   Lightbox (opened from a studio page's photo icon)
+  layout/    Header (centered logo + Book button), MobileMenu (the site's
+             only other nav — studios, contact, legal), Footer (used on the
+             confirmation/legal pages), NoScrollEffect (locks the homepage
+             to one screen)
+  sections/  Hero (the one homepage screen + the 2 studio tiles),
+             StudioTile, StudioDetails (full-screen photos-and-details
+             overlay), StudioDetailsContext
+  gallery/   Lightbox (opened from a studio's details overlay)
   booking/   BookingDrawerContext (global open/close state), BookingDrawer
              (the slide-over panel — studio → day → duration → time → extras
              → details), BookingCalendar, TimeSlots, AddOns, BookingForm,

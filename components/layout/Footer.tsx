@@ -1,13 +1,7 @@
 import Link from "next/link";
 import { Container } from "@/components/ui/Container";
-import { AnchorLink } from "@/components/ui/AnchorLink";
 import { Logo } from "@/components/ui/Logo";
 import { site } from "@/lib/site";
-
-const nav = [
-  { label: "Studio 01", href: "#studio-01" },
-  { label: "Studio 02", href: "#studio-02" },
-];
 
 const legal = [
   { label: "Terms", href: "/legal/terms" },
@@ -20,15 +14,9 @@ export function Footer() {
     <footer className="border-t border-line bg-paper py-16 sm:py-20">
       <Container>
         <div className="flex flex-col gap-10 sm:flex-row sm:items-start sm:justify-between">
-          <Logo className="h-11 sm:h-12" />
-
-          <nav className="flex flex-wrap gap-x-8 gap-y-3 text-sm text-ink-soft">
-            {nav.map((l) => (
-              <AnchorLink key={l.label} href={l.href} className="transition-colors hover:text-ink">
-                {l.label}
-              </AnchorLink>
-            ))}
-          </nav>
+          <Link href="/">
+            <Logo className="h-11 sm:h-12" />
+          </Link>
 
           <div className="text-sm text-ink-soft">
             <a href={site.contact.emailHref} className="block hover:text-ink">

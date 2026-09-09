@@ -1,21 +1,27 @@
 "use client";
 
 import { useEffect } from "react";
+import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { navLinks } from "@/lib/nav";
 import { site } from "@/lib/site";
-import { smoothScrollToHash } from "@/components/ui/AnchorLink";
+import { studios } from "@/lib/studios";
 import { Logo } from "@/components/ui/Logo";
 import { useBookingDrawer } from "@/components/booking/BookingDrawerContext";
+import { useStudioDetails } from "@/components/sections/StudioDetailsContext";
+
+const legal = [
+  { label: "Terms", href: "/legal/terms" },
+  { label: "Privacy", href: "/legal/privacy" },
+  { label: "Cancellation", href: "/legal/cancellation" },
+];
 
 export function MobileMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { openBooking } = useBookingDrawer();
+  const { openDetails } = useStudioDetails();
 
-  // Close first (restores body scroll), then scroll on the next tick.
-  const navigate = (hash: string) => (e: React.MouseEvent) => {
-    e.preventDefault();
+  const seeStudio = (slug: (typeof studios)[number]["slug"]) => () => {
     onClose();
-    setTimeout(() => smoothScrollToHash(hash), 70);
+    setTimeout(() => openDetails(slug), 70);
   };
 
   const bookNow = () => {
@@ -39,7 +45,7 @@ export function MobileMenu({ open, onClose }: { open: boolean; onClose: () => vo
     <AnimatePresence>
       {open && (
         <motion.div
-          className="fixed inset-0 z-[60] bg-paper"
+          className="fixed inset-0 z-[60] overflow-y-auto bg-paper"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -48,7 +54,7 @@ export function MobileMenu({ open, onClose }: { open: boolean; onClose: () => vo
           aria-modal="true"
           aria-label="Menu"
         >
-          <div className="flex h-full flex-col px-5 pb-10 pt-5 sm:px-8">
+          <div className="flex min-h-full flex-col px-5 pb-10 pt-5 sm:px-8">
             <div className="flex items-center justify-between">
               <Logo />
               <button
@@ -59,21 +65,20 @@ export function MobileMenu({ open, onClose }: { open: boolean; onClose: () => vo
               </button>
             </div>
 
-            <nav className="mt-auto flex flex-col gap-1">
-              {navLinks.map((link, i) => (
+            <nav className="mt-auto flex flex-col gap-1 pt-16">
+              {studios.map((s, i) => (
                 <motion.div
-                  key={link.href}
+                  key={s.slug}
                   initial={{ opacity: 0, y: 16 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: 0.08 + i * 0.05, ease: [0.22, 1, 0.36, 1] }}
                 >
-                  <a
-                    href={link.href}
-                    onClick={navigate(link.href)}
-                    className="block py-2 font-serif text-[2.75rem] leading-tight tracking-tight"
+                  <button
+                    onClick={seeStudio(s.slug)}
+                    className="block py-2 text-left font-serif text-[2.75rem] leading-tight tracking-tight"
                   >
-                    {link.label}
-                  </a>
+                    {s.name}
+                  </button>
                 </motion.div>
               ))}
             </nav>
@@ -85,9 +90,26 @@ export function MobileMenu({ open, onClose }: { open: boolean; onClose: () => vo
               >
                 Book a studio
               </button>
-              <div className="mt-6 flex flex-col gap-1 text-sm text-ink-soft">
-                <a href={site.contact.phoneHref}>{site.contact.phone}</a>
-                <a href={site.contact.emailHref}>{site.contact.email}</a>
+
+              <div className="mt-6 space-y-1 text-sm text-ink-soft">
+                <a href={site.contact.phoneHref} className="block hover:text-ink">
+                  {site.contact.phone}
+                </a>
+                <a href={site.contact.emailHref} className="block hover:text-ink">
+                  {site.contact.email}
+                </a>
+                <p>
+                  {site.contact.address.line1}, {site.contact.address.line2}
+                </p>
+              </div>
+
+              <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-[0.7rem] uppercase tracking-[0.14em] text-ink-faint">
+                <span>© 2026 {site.name}</span>
+                {legal.map((l) => (
+                  <Link key={l.label} href={l.href} onClick={onClose} className="hover:text-ink">
+                    {l.label}
+                  </Link>
+                ))}
               </div>
             </div>
           </div>
