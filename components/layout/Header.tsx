@@ -25,13 +25,13 @@ export function Header() {
           </button>
 
           <AnchorLink href="#top" aria-label="Studio 98 — home">
-            <Logo variant="white" className="h-9 sm:h-12" />
+            <Logo variant="white" className="h-12 sm:h-16 lg:h-20" />
           </AnchorLink>
 
           <button
             type="button"
             onClick={() => openBooking()}
-            className="mt-3 flex h-10 items-center border border-paper/50 px-6 text-[0.68rem] font-medium uppercase tracking-[0.16em] text-paper transition-colors hover:bg-paper hover:text-ink sm:mt-4 sm:h-11 sm:px-8"
+            className="mt-4 flex h-12 items-center border border-paper/50 px-8 text-[0.72rem] font-medium uppercase tracking-[0.18em] text-paper transition-colors hover:bg-paper hover:text-ink sm:mt-5 sm:h-14 sm:px-10 sm:text-sm"
           >
             Book a studio
           </button>
