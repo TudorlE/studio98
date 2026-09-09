@@ -19,7 +19,7 @@ export function Header() {
           <button
             onClick={() => setMenuOpen(true)}
             aria-label="Menu"
-            className="absolute left-5 top-4 grid h-10 w-10 place-items-center text-paper sm:left-6 sm:top-6"
+            className="absolute right-5 top-4 grid h-10 w-10 place-items-center text-paper sm:right-6 sm:top-6"
           >
             <Menu size={22} strokeWidth={1.5} />
           </button>

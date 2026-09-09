@@ -63,7 +63,7 @@ export function Hero() {
           </motion.p>
 
           <motion.div
-            className="mt-4 flex gap-4 sm:mt-6 sm:gap-6"
+            className="mt-4 flex gap-4 sm:mt-6 sm:gap-6 lg:gap-8"
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, ease, delay: 0.9 }}
