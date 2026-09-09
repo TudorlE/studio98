@@ -106,7 +106,7 @@ export async function POST(req: NextRequest) {
         customerEmail: input.customer.email,
         lineItems,
         successUrl: `${origin}/booking/confirmation?booking=${bookingId}`,
-        cancelUrl: `${origin}/?booking=cancelled#booking`,
+        cancelUrl: `${origin}/?booking=cancelled`,
         metadata: { bookingId, studio: slug, date: input.date, startTime: input.startTime },
       });
       return NextResponse.json({ bookingId, checkoutUrl: session.url });

@@ -6,13 +6,21 @@ import { navLinks } from "@/lib/nav";
 import { site } from "@/lib/site";
 import { smoothScrollToHash } from "@/components/ui/AnchorLink";
 import { Logo } from "@/components/ui/Logo";
+import { useBookingDrawer } from "@/components/booking/BookingDrawerContext";
 
 export function MobileMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { openBooking } = useBookingDrawer();
+
   // Close first (restores body scroll), then scroll on the next tick.
   const navigate = (hash: string) => (e: React.MouseEvent) => {
     e.preventDefault();
     onClose();
     setTimeout(() => smoothScrollToHash(hash), 70);
+  };
+
+  const bookNow = () => {
+    onClose();
+    setTimeout(() => openBooking(), 70);
   };
 
   useEffect(() => {
@@ -31,7 +39,7 @@ export function MobileMenu({ open, onClose }: { open: boolean; onClose: () => vo
     <AnimatePresence>
       {open && (
         <motion.div
-          className="fixed inset-0 z-[60] bg-paper lg:hidden"
+          className="fixed inset-0 z-[60] bg-paper"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -71,13 +79,12 @@ export function MobileMenu({ open, onClose }: { open: boolean; onClose: () => vo
             </nav>
 
             <div className="mt-10 border-t border-line pt-6">
-              <a
-                href="#booking"
-                onClick={navigate("#booking")}
-                className="flex h-14 items-center justify-center bg-ink text-[0.72rem] font-medium uppercase tracking-[0.18em] text-paper"
+              <button
+                onClick={bookNow}
+                className="flex h-14 w-full items-center justify-center bg-ink text-[0.72rem] font-medium uppercase tracking-[0.18em] text-paper"
               >
                 Book a studio
-              </a>
+              </button>
               <div className="mt-6 flex flex-col gap-1 text-sm text-ink-soft">
                 <a href={site.contact.phoneHref}>{site.contact.phone}</a>
                 <a href={site.contact.emailHref}>{site.contact.email}</a>

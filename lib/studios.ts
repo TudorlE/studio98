@@ -54,11 +54,11 @@ export type AddOn = {
 };
 
 export const studioAddOns: AddOn[] = [
-  { id: "cyclorama", name: "Cyclorama sweep", note: "Pre-set white cyc wall", price: 20, unit: "flat" },
-  { id: "lighting-kit", name: "Lighting kit", note: "Strobe heads, softboxes, stands", price: 25, unit: "flat" },
-  { id: "backdrop", name: "Extra backdrop roll", note: "Colour of your choice", price: 10, unit: "flat" },
-  { id: "assistant", name: "On-site assistant", note: "Lighting & set support", price: 15, unit: "hour" },
-  { id: "glam", name: "Hair & make-up station", note: "Mirror, ring light, chair", price: 15, unit: "flat" },
+  { id: "cyclorama", name: "White wall", note: "A smooth white background", price: 20, unit: "flat" },
+  { id: "lighting-kit", name: "Extra lights", note: "More light for your shoot", price: 25, unit: "flat" },
+  { id: "backdrop", name: "Extra backdrop", note: "Pick a different colour", price: 10, unit: "flat" },
+  { id: "assistant", name: "A helper", note: "Someone to help during your shoot", price: 15, unit: "hour" },
+  { id: "glam", name: "Makeup corner", note: "Mirror and a good light", price: 15, unit: "flat" },
 ];
 
 export const addOnById = (id: string) => studioAddOns.find((a) => a.id === id);
@@ -79,8 +79,7 @@ export const studios: Studio[] = [
     index: "01",
     name: "STUDIO 01",
     subtitle: "THE LIGHT SPACE",
-    description:
-      "A bright, high-ceiling room with large north-facing windows and warm white walls. Built for natural-light photography, editorial shoots, interviews and intimate creative sessions.",
+    description: "A bright room, full of natural light.",
     area: "00 m²",
     capacity: "Up to 00 people",
     pricePerHour: 25,
@@ -108,8 +107,7 @@ export const studios: Studio[] = [
     index: "02",
     name: "STUDIO 02",
     subtitle: "THE DARK SPACE",
-    description:
-      "A blacked-out room with full lighting control for cinematic video, product photography and moody portraiture. No daylight spill — you shape every beam.",
+    description: "A dark room, made for dramatic light.",
     area: "00 m²",
     capacity: "Up to 00 people",
     pricePerHour: 30,

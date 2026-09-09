@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import { Cormorant_Garamond, Inter } from "next/font/google";
 import "./globals.css";
 import { site } from "@/lib/site";
+import { BookingDrawerProvider } from "@/components/booking/BookingDrawerContext";
+import { BookingDrawer } from "@/components/booking/BookingDrawer";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -55,7 +57,12 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={`${inter.variable} ${cormorant.variable} h-full`}>
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <BookingDrawerProvider>
+          {children}
+          <BookingDrawer />
+        </BookingDrawerProvider>
+      </body>
     </html>
   );
 }

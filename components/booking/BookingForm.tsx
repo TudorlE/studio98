@@ -14,18 +14,14 @@ export function BookingForm({
   terms,
   onTermsChange,
   onSubmit,
-  submitting,
   error,
-  disabled,
 }: {
   values: CustomerFields;
   onChange: (next: CustomerFields) => void;
   terms: boolean;
   onTermsChange: (v: boolean) => void;
   onSubmit: () => void;
-  submitting: boolean;
   error: string | null;
-  disabled: boolean;
 }) {
   return (
     <form
@@ -37,7 +33,7 @@ export function BookingForm({
     >
       <div>
         <label htmlFor="bf-name" className="eyebrow">
-          Full name
+          Your name
         </label>
         <input
           id="bf-name"
@@ -45,40 +41,42 @@ export function BookingForm({
           value={values.name}
           onChange={(e) => onChange({ ...values, name: e.target.value })}
           autoComplete="name"
+          placeholder="Jane Doe"
           required
           minLength={2}
         />
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div>
-          <label htmlFor="bf-phone" className="eyebrow">
-            Phone number
-          </label>
-          <input
-            id="bf-phone"
-            type="tel"
-            className={cn(field, "mt-2")}
-            value={values.phone}
-            onChange={(e) => onChange({ ...values, phone: e.target.value })}
-            autoComplete="tel"
-            required
-          />
-        </div>
-        <div>
-          <label htmlFor="bf-email" className="eyebrow">
-            Email
-          </label>
-          <input
-            id="bf-email"
-            type="email"
-            className={cn(field, "mt-2")}
-            value={values.email}
-            onChange={(e) => onChange({ ...values, email: e.target.value })}
-            autoComplete="email"
-            required
-          />
-        </div>
+      <div>
+        <label htmlFor="bf-phone" className="eyebrow">
+          Phone
+        </label>
+        <input
+          id="bf-phone"
+          type="tel"
+          className={cn(field, "mt-2")}
+          value={values.phone}
+          onChange={(e) => onChange({ ...values, phone: e.target.value })}
+          autoComplete="tel"
+          placeholder="+373 ..."
+          required
+        />
+      </div>
+
+      <div>
+        <label htmlFor="bf-email" className="eyebrow">
+          Email
+        </label>
+        <input
+          id="bf-email"
+          type="email"
+          className={cn(field, "mt-2")}
+          value={values.email}
+          onChange={(e) => onChange({ ...values, email: e.target.value })}
+          autoComplete="email"
+          placeholder="you@email.com"
+          required
+        />
       </div>
 
       <label className="flex cursor-pointer items-start gap-3 pt-2 text-sm text-ink-soft">
@@ -89,26 +87,23 @@ export function BookingForm({
           onChange={(e) => onTermsChange(e.target.checked)}
         />
         <span>
-          I agree with the{" "}
+          I agree to the{" "}
           <Link href="/legal/terms" target="_blank" className="underline hover:text-ink">
-            booking terms
+            booking rules
           </Link>
           .
         </span>
       </label>
 
       {error && (
-        <p role="alert" className="text-sm text-ink">
+        <p role="alert" className="text-sm font-medium text-ink">
           {error}
         </p>
       )}
 
-      <button
-        type="submit"
-        disabled={disabled || submitting}
-        className="mt-2 flex h-14 w-full items-center justify-center bg-ink text-[0.72rem] font-medium uppercase tracking-[0.18em] text-paper transition-colors hover:bg-ink-soft disabled:opacity-40"
-      >
-        {submitting ? "Processing…" : "Continue to payment"}
+      {/* Submitted from the sticky button below — Enter key still works. */}
+      <button type="submit" className="sr-only">
+        Book
       </button>
     </form>
   );

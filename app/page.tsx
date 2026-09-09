@@ -1,11 +1,8 @@
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
-import { StickyBookBar } from "@/components/layout/StickyBookBar";
+import { ScrollSnapEffect } from "@/components/layout/ScrollSnapEffect";
 import { Hero } from "@/components/sections/Hero";
-import { About } from "@/components/sections/About";
 import { StudioSection } from "@/components/sections/StudioSection";
-import { Location } from "@/components/sections/Location";
-import { BookingSystem } from "@/components/booking/BookingSystem";
 import { studios } from "@/lib/studios";
 import { site } from "@/lib/site";
 
@@ -34,17 +31,15 @@ export default function Home() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
+      <ScrollSnapEffect />
       <Header />
       <main className="flex-1">
         <Hero />
-        <About />
         <StudioSection studio={studio01} />
         <StudioSection studio={studio02} />
-        <BookingSystem />
-        <Location />
       </main>
+      <div id="footer-sentinel" />
       <Footer />
-      <StickyBookBar />
     </>
   );
 }

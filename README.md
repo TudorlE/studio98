@@ -7,6 +7,23 @@ studios, with a real booking + payment architecture behind it.
 > email, social links and images are stand-ins. Search the codebase for
 > `placeholder` / `TODO` and replace before launch.
 
+## Homepage: 3 full screens, nothing to scroll for
+
+The homepage is exactly three full-screen pages — **Hero → Studio 01 → Studio
+02** — with scroll-snap between them (`ScrollSnapEffect`), so it never feels
+like an endless scroll. Everything a visitor needs (see the studios, book one)
+is visible without hunting for it. A slim footer (contact + legal) sits after
+page 3 for anyone who scrolls further.
+
+**Booking is a slide-over panel, not a page.** Any "Book a studio" button
+(header, hero, either studio page) opens `<BookingDrawer>` — a right-side
+panel on desktop (`sm:w-[420px] sm:max-w-[46vw]`, always under half the
+screen) and a full-screen panel on mobile. It walks through: studio → day →
+duration → time → extras → your details, with a running price on a sticky
+button at the bottom. State lives in `BookingDrawerContext`
+([`components/booking/BookingDrawerContext.tsx`](components/booking/BookingDrawerContext.tsx)),
+so any component can call `useBookingDrawer().openBooking("studio-01")`.
+
 ## Stack
 
 - **Next.js 16** (App Router, Turbopack) · **React 19** · **TypeScript (strict)**
@@ -127,11 +144,14 @@ app/
     bookings/                  POST create hold + start checkout
     webhooks/stripe/           POST payment events
 components/
-  layout/    Header, MobileMenu, Footer, StickyBookBar
-  sections/  Hero, About, StudioSection, Location
-  gallery/   StudioGallery (editorial grid / mobile swipe), Lightbox
-  booking/   BookingSystem (orchestrator), BookingCalendar, TimeSlots,
-             AddOns, BookingForm, BookStudioButton
+  layout/    Header (centered logo + Book button, scroll-aware), MobileMenu
+             (also the desktop side menu), Footer, ScrollSnapEffect
+  sections/  Hero, StudioSection — both full-screen "cover" pages
+  gallery/   Lightbox (opened from a studio page's photo icon)
+  booking/   BookingDrawerContext (global open/close state), BookingDrawer
+             (the slide-over panel — studio → day → duration → time → extras
+             → details), BookingCalendar, TimeSlots, AddOns, BookingForm,
+             BookStudioButton
   ui/        Container, Button, Reveal, AnchorLink (smooth in-page scroll), Logo
 lib/
   site.ts        contact / hours / currency config  (PLACEHOLDER)
@@ -149,23 +169,21 @@ supabase/
 
 ## Swapping images
 
-The gallery currently uses free-licensed photo-studio interiors from Unsplash,
-stored in `public/images/`. To use the studio's own photography, replace the
-files in `public/images/hero.jpg`, `public/images/about/` and
-`public/images/<slug>/` — keep the same filenames and no code changes are
-needed. Captions/alt text live in [`lib/studios.ts`](lib/studios.ts),
-[`Hero.tsx`](components/sections/Hero.tsx) and
-[`About.tsx`](components/sections/About.tsx). For remote hosting (Supabase
-Storage etc.) add the host to `images.remotePatterns` in
-[`next.config.ts`](next.config.ts).
+The site uses free-licensed photo-studio interiors from Unsplash, stored in
+`public/images/`. Each studio's first gallery image (`01.jpg`) is also its
+full-screen page background. To use the studio's own photography, replace the
+files in `public/images/hero.jpg` and `public/images/<slug>/` — keep the same
+filenames and no code changes are needed. Captions/alt text live in
+[`lib/studios.ts`](lib/studios.ts). For remote hosting (Supabase Storage etc.)
+add the host to `images.remotePatterns` in [`next.config.ts`](next.config.ts).
 
 ## Logo
 
-[`components/ui/Logo.tsx`](components/ui/Logo.tsx) is an inline SVG re-creation
-of the STUDIO 98 mark — line art that inherits `currentColor`, so it works on
-any background. `public/logo.svg` holds the same drawing as a standalone file.
-To use the real brand export, replace the SVG body in `Logo.tsx` (or point it
-at your file).
+[`components/ui/Logo.tsx`](components/ui/Logo.tsx) renders the real brand
+files, `public/logo.png` (black, for light backgrounds) and
+`public/logo-white.png` (white, for the photo pages) — pass
+`variant="white"`/`"black"`. Replace those two PNGs to update the mark
+everywhere at once.
 
 ## Future admin panel
 

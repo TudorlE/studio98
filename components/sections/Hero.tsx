@@ -3,15 +3,19 @@
 import Image from "next/image";
 import { motion, useReducedMotion } from "framer-motion";
 import { ArrowDown } from "lucide-react";
-import { AnchorLink } from "@/components/ui/AnchorLink";
+import { useBookingDrawer } from "@/components/booking/BookingDrawerContext";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
 export function Hero() {
   const reduce = useReducedMotion();
+  const { openBooking } = useBookingDrawer();
 
   return (
-    <section id="top" className="relative h-[100svh] min-h-[560px] w-full overflow-hidden bg-paper-deep">
+    <section
+      id="top"
+      className="relative h-[100svh] min-h-[560px] w-full snap-start overflow-hidden bg-paper-deep [scroll-snap-stop:always]"
+    >
       <motion.div
         className="absolute inset-0"
         initial={reduce ? { opacity: 0 } : { opacity: 0, scale: 1.08 }}
@@ -52,12 +56,13 @@ export function Hero() {
           transition={{ duration: 0.9, ease, delay: 0.9 }}
           className="mt-9"
         >
-          <AnchorLink
-            href="#booking"
+          <button
+            type="button"
+            onClick={() => openBooking()}
             className="inline-flex h-12 items-center justify-center bg-paper px-8 text-[0.7rem] font-medium uppercase tracking-[0.18em] text-ink transition-colors hover:bg-paper-deep"
           >
             Book a studio
-          </AnchorLink>
+          </button>
         </motion.div>
       </div>
 

@@ -1,58 +1,92 @@
-import { Container } from "@/components/ui/Container";
-import { Reveal } from "@/components/ui/Reveal";
-import { StudioGallery } from "@/components/gallery/StudioGallery";
+"use client";
+
+import { useState } from "react";
+import Image from "next/image";
+import { motion } from "framer-motion";
+import { Images } from "lucide-react";
+import { Lightbox } from "@/components/gallery/Lightbox";
 import { BookStudioButton } from "@/components/booking/BookStudioButton";
 import { formatMoney } from "@/lib/booking";
-import { cn } from "@/lib/cn";
 import type { Studio } from "@/lib/studios";
 
+const ease = [0.22, 1, 0.36, 1] as const;
+
 export function StudioSection({ studio }: { studio: Studio }) {
-  const dark = studio.theme === "dark";
-  const muted = dark ? "text-night-soft" : "text-ink-soft";
+  const [galleryOpen, setGalleryOpen] = useState<number | null>(null);
 
   return (
     <section
       id={studio.slug}
-      className={cn(
-        "scroll-mt-20 border-t py-24 sm:py-32 lg:py-40",
-        dark ? "on-night border-night-line bg-night text-paper" : "border-line bg-paper",
-      )}
+      className="relative h-[100svh] min-h-[560px] w-full snap-start overflow-hidden bg-paper-deep [scroll-snap-stop:always]"
     >
-      <Container>
-        <Reveal>
-          <div className="flex items-baseline justify-between gap-6">
-            <p className={cn("eyebrow", dark && "text-night-soft")}>Studio {studio.index}</p>
-            <p className={cn("text-sm", muted)}>
-              {formatMoney(studio.pricePerHour)} <span className="uppercase tracking-[0.12em]">/ hour</span>
-            </p>
-          </div>
-          <h2 className="headline mt-4 text-[14vw] leading-[0.95] sm:text-7xl lg:text-[5.5rem]">
-            {studio.subtitle}
-          </h2>
-        </Reveal>
+      <div className="absolute inset-0">
+        <Image
+          src={studio.images[0].src}
+          alt={studio.images[0].alt}
+          fill
+          sizes="100vw"
+          className="object-cover"
+        />
+        <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(14,14,13,0.42),rgba(14,14,13,0.12)_28%,rgba(14,14,13,0.10)_62%,rgba(14,14,13,0.62))]" />
+      </div>
 
-        <div className="mt-14 sm:mt-20">
-          <Reveal>
-            <StudioGallery images={studio.images} theme={studio.theme} />
-          </Reveal>
-        </div>
+      <button
+        type="button"
+        onClick={() => setGalleryOpen(0)}
+        className="absolute right-5 top-24 z-10 flex h-11 w-11 items-center justify-center border border-paper/40 text-paper transition-colors hover:bg-paper hover:text-ink sm:right-8 sm:top-28"
+        aria-label={`See photos of ${studio.subtitle}`}
+      >
+        <Images size={18} strokeWidth={1.5} />
+      </button>
 
-        <Reveal delay={0.05}>
-          <div
-            className="mt-12 flex flex-col gap-6 border-t pt-8 sm:flex-row sm:items-center sm:justify-between"
-            style={{ borderColor: dark ? "var(--color-night-line)" : "var(--color-line)" }}
-          >
-            <p className={cn("text-sm", muted)}>
-              {studio.area} · {studio.capacity}
-            </p>
-            <BookStudioButton
-              slug={studio.slug}
-              label={`Book Studio ${studio.index}`}
-              tone={dark ? "paper" : "ink"}
-            />
-          </div>
-        </Reveal>
-      </Container>
+      <div className="on-night relative z-[1] mx-auto flex h-full w-full max-w-[1600px] flex-col justify-end px-5 pb-14 text-paper sm:px-8 sm:pb-20 lg:px-14 lg:pb-24">
+        <motion.p
+          className="text-[0.7rem] font-medium uppercase tracking-[0.18em] text-paper/75"
+          initial={{ opacity: 0, y: 10 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ amount: 0.6 }}
+          transition={{ duration: 0.7, ease }}
+        >
+          Studio {studio.index}
+        </motion.p>
+
+        <motion.h2
+          className="display mt-4 max-w-[15ch] text-[13vw] leading-[0.95] sm:text-[7vw] lg:text-[5.2vw]"
+          initial={{ opacity: 0, y: 16 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ amount: 0.6 }}
+          transition={{ duration: 0.8, ease, delay: 0.08 }}
+        >
+          {studio.subtitle}
+        </motion.h2>
+
+        <motion.p
+          className="mt-4 text-sm text-paper/85 sm:text-base"
+          initial={{ opacity: 0, y: 10 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ amount: 0.6 }}
+          transition={{ duration: 0.7, ease, delay: 0.16 }}
+        >
+          {studio.description} From {formatMoney(studio.pricePerHour)} / hour.
+        </motion.p>
+
+        <motion.div
+          className="mt-8"
+          initial={{ opacity: 0, y: 12 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ amount: 0.6 }}
+          transition={{ duration: 0.7, ease, delay: 0.24 }}
+        >
+          <BookStudioButton slug={studio.slug} label={`Book Studio ${studio.index}`} tone="paper" />
+        </motion.div>
+      </div>
+
+      <Lightbox
+        images={studio.images}
+        index={galleryOpen}
+        onClose={() => setGalleryOpen(null)}
+        onIndexChange={setGalleryOpen}
+      />
     </section>
   );
 }
