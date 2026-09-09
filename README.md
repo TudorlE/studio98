@@ -38,7 +38,9 @@ pages; on the homepage that same information is one tap away in the menu
 
 - **Next.js 16** (App Router, Turbopack) · **React 19** · **TypeScript (strict)**
 - **Tailwind CSS v4** — design tokens in [`app/globals.css`](app/globals.css)
-- **Framer Motion** — subtle reveals only ([`components/ui/Reveal.tsx`](components/ui/Reveal.tsx))
+- **Framer Motion** — used for one thing only: swipe-to-navigate in the photo
+  lightbox ([`components/gallery/Lightbox.tsx`](components/gallery/Lightbox.tsx)).
+  No decorative/entrance animation anywhere on the site by design.
 - **lucide-react** — icons
 - **Supabase** — database + availability + bookings
 - **Stripe** — card / Apple Pay / Google Pay via hosted checkout
@@ -166,7 +168,7 @@ components/
              (the slide-over panel — studio → day → duration → time → extras
              → details), BookingCalendar, TimeSlots, AddOns, BookingForm,
              BookStudioButton
-  ui/        Container, Button, Reveal, AnchorLink (smooth in-page scroll), Logo
+  ui/        Container, Button, AnchorLink (smooth in-page scroll), Logo
 lib/
   site.ts        contact / hours / currency config  (PLACEHOLDER)
   studios.ts     studio content + images            (PLACEHOLDER)

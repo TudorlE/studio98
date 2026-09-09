@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
-import { AnimatePresence, motion } from "framer-motion";
 import { X } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { studios, type StudioSlug } from "@/lib/studios";
@@ -19,8 +18,6 @@ import { TimeSlots } from "./TimeSlots";
 import { AddOns } from "./AddOns";
 import { BookingForm, type CustomerFields } from "./BookingForm";
 import { useBookingDrawer } from "./BookingDrawerContext";
-
-const ease = [0.22, 1, 0.36, 1] as const;
 
 const emptyCustomer: CustomerFields = { name: "", email: "", phone: "" };
 
@@ -199,29 +196,22 @@ export function BookingDrawer() {
     return `Pay ${formatMoney(breakdown.subtotal)} & book`;
   })();
 
+  if (!isOpen) return null;
+
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          <motion.button
-            aria-label="Close"
-            className="fixed inset-0 z-[80] bg-black/45"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            onClick={closeBooking}
-          />
-          <motion.aside
-            role="dialog"
-            aria-modal="true"
-            aria-label="Book a studio"
-            className="fixed inset-0 z-[90] flex w-full flex-col bg-paper sm:inset-y-0 sm:right-0 sm:left-auto sm:w-[420px] sm:max-w-[46vw]"
-            initial={{ x: "100%" }}
-            animate={{ x: 0 }}
-            exit={{ x: "100%" }}
-            transition={{ duration: 0.45, ease }}
-          >
+    <>
+      <button
+        type="button"
+        aria-label="Close"
+        className="fixed inset-0 z-[80] bg-black/45"
+        onClick={closeBooking}
+      />
+      <aside
+        role="dialog"
+        aria-modal="true"
+        aria-label="Book a studio"
+        className="fixed inset-0 z-[90] flex w-full flex-col bg-paper sm:inset-y-0 sm:right-0 sm:left-auto sm:w-[420px] sm:max-w-[46vw]"
+      >
             <div className="flex items-center justify-between border-b border-line px-5 py-4 sm:px-6">
               <p className="font-serif text-xl tracking-tight">Book a studio</p>
               <button
@@ -266,100 +256,80 @@ export function BookingDrawer() {
                 </div>
               </DrawerStep>
 
-              <AnimatePresence initial={false}>
-                {studio && (
-                  <FadeIn key="date">
-                    <DrawerStep n={2} title="Pick a day">
-                      <BookingCalendar value={date} onChange={pickDate} />
-                    </DrawerStep>
-                  </FadeIn>
-                )}
-              </AnimatePresence>
+              {studio && (
+                <DrawerStep n={2} title="Pick a day">
+                  <BookingCalendar value={date} onChange={pickDate} />
+                </DrawerStep>
+              )}
 
-              <AnimatePresence initial={false}>
-                {studio && date && (
-                  <FadeIn key="duration">
-                    <DrawerStep n={3} title="How long?">
-                      <div className="flex flex-wrap gap-2">
-                        {durationOptions.map((h) => {
-                          const disabled = h < minHours;
-                          return (
-                            <button
-                              key={h}
-                              type="button"
-                              disabled={disabled}
-                              onClick={() => {
-                                setDuration(h);
-                                resetTime();
-                              }}
-                              className={cn(
-                                "h-11 border px-4 text-sm transition-colors",
-                                duration === h && !disabled
-                                  ? "border-ink bg-ink text-paper"
-                                  : "border-line hover:enabled:border-ink",
-                                disabled && "text-ink-faint line-through",
-                              )}
-                            >
-                              {h}h
-                            </button>
-                          );
-                        })}
-                      </div>
-                      {weekend && (
-                        <p className="mt-3 text-sm text-ink-soft">
-                          Weekends need at least {minHours} hour{minHours > 1 ? "s" : ""}.
-                        </p>
-                      )}
-                    </DrawerStep>
-                  </FadeIn>
-                )}
-              </AnimatePresence>
+              {studio && date && (
+                <DrawerStep n={3} title="How long?">
+                  <div className="flex flex-wrap gap-2">
+                    {durationOptions.map((h) => {
+                      const disabled = h < minHours;
+                      return (
+                        <button
+                          key={h}
+                          type="button"
+                          disabled={disabled}
+                          onClick={() => {
+                            setDuration(h);
+                            resetTime();
+                          }}
+                          className={cn(
+                            "h-11 border px-4 text-sm transition-colors",
+                            duration === h && !disabled
+                              ? "border-ink bg-ink text-paper"
+                              : "border-line hover:enabled:border-ink",
+                            disabled && "text-ink-faint line-through",
+                          )}
+                        >
+                          {h}h
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {weekend && (
+                    <p className="mt-3 text-sm text-ink-soft">
+                      Weekends need at least {minHours} hour{minHours > 1 ? "s" : ""}.
+                    </p>
+                  )}
+                </DrawerStep>
+              )}
 
-              <AnimatePresence initial={false}>
-                {studio && date && (
-                  <FadeIn key="time">
-                    <DrawerStep n={4} title="Pick a time">
-                      {availabilityError ? (
-                        <p className="text-sm text-ink-soft">{availabilityError}</p>
-                      ) : (
-                        <TimeSlots
-                          statuses={statuses}
-                          value={startTime}
-                          onChange={setStartTime}
-                          loading={!statuses}
-                        />
-                      )}
-                    </DrawerStep>
-                  </FadeIn>
-                )}
-              </AnimatePresence>
+              {studio && date && (
+                <DrawerStep n={4} title="Pick a time">
+                  {availabilityError ? (
+                    <p className="text-sm text-ink-soft">{availabilityError}</p>
+                  ) : (
+                    <TimeSlots
+                      statuses={statuses}
+                      value={startTime}
+                      onChange={setStartTime}
+                      loading={!statuses}
+                    />
+                  )}
+                </DrawerStep>
+              )}
 
-              <AnimatePresence initial={false}>
-                {studio && date && startTime && (
-                  <FadeIn key="extras">
-                    <DrawerStep n={5} title="Anything extra?" optional>
-                      <AddOns selected={addOns} onToggle={toggleAddOn} />
-                    </DrawerStep>
-                  </FadeIn>
-                )}
-              </AnimatePresence>
+              {studio && date && startTime && (
+                <DrawerStep n={5} title="Anything extra?" optional>
+                  <AddOns selected={addOns} onToggle={toggleAddOn} />
+                </DrawerStep>
+              )}
 
-              <AnimatePresence initial={false}>
-                {studio && date && startTime && (
-                  <FadeIn key="details">
-                    <DrawerStep n={6} title="Your details">
-                      <BookingForm
-                        values={customer}
-                        onChange={setCustomer}
-                        terms={terms}
-                        onTermsChange={setTerms}
-                        onSubmit={submit}
-                        error={submitError}
-                      />
-                    </DrawerStep>
-                  </FadeIn>
-                )}
-              </AnimatePresence>
+              {studio && date && startTime && (
+                <DrawerStep n={6} title="Your details">
+                  <BookingForm
+                    values={customer}
+                    onChange={setCustomer}
+                    terms={terms}
+                    onTermsChange={setTerms}
+                    onSubmit={submit}
+                    error={submitError}
+                  />
+                </DrawerStep>
+              )}
             </div>
 
             <div className="border-t border-line bg-paper px-5 py-4 sm:px-6">
@@ -389,10 +359,8 @@ export function BookingDrawer() {
                 Payment is safe. We never see your card.
               </p>
             </div>
-          </motion.aside>
-        </>
-      )}
-    </AnimatePresence>
+      </aside>
+    </>
   );
 }
 
@@ -420,18 +388,5 @@ function DrawerStep({
       </div>
       <div className="mt-4">{children}</div>
     </div>
-  );
-}
-
-function FadeIn({ children }: { children: React.ReactNode }) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.35, ease }}
-    >
-      {children}
-    </motion.div>
   );
 }
