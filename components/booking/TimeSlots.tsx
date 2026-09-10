@@ -18,7 +18,7 @@ export function TimeSlots({
 
   if (loading) {
     return (
-      <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+      <div className="grid grid-cols-4 gap-2 sm:grid-cols-5 lg:grid-cols-6">
         {slots.map((s) => (
           <div key={s.time} className="h-11 animate-pulse bg-paper-deep" />
         ))}
@@ -32,7 +32,7 @@ export function TimeSlots({
 
   return (
     <div>
-      <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+      <div className="grid grid-cols-4 gap-2 sm:grid-cols-5 lg:grid-cols-6">
         {slots.map((s) => {
           const status = statuses[s.time] ?? "closed";
           const selectable = status === "available";

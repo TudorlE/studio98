@@ -210,9 +210,9 @@ export function BookingDrawer() {
         role="dialog"
         aria-modal="true"
         aria-label="Book a studio"
-        className="fixed inset-0 z-[90] flex w-full flex-col bg-paper sm:inset-y-0 sm:right-0 sm:left-auto sm:w-[420px] sm:max-w-[46vw]"
+        className="fixed inset-0 z-[90] flex w-full flex-col bg-paper sm:inset-y-0 sm:right-0 sm:left-auto sm:w-[85vw] sm:max-w-[560px] lg:w-[55vw] lg:max-w-[760px]"
       >
-            <div className="flex items-center justify-between border-b border-line px-5 py-4 sm:px-6">
+            <div className="flex items-center justify-between border-b border-line px-6 py-5 sm:px-8">
               <p className="font-serif text-xl tracking-tight">Book a studio</p>
               <button
                 onClick={closeBooking}
@@ -223,29 +223,34 @@ export function BookingDrawer() {
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-5 py-6 sm:px-6">
+            <div className="flex-1 overflow-y-auto px-6 py-7 sm:px-8">
               <DrawerStep n={1} title="Choose a studio">
-                <div className="grid gap-3">
+                <div className="grid gap-3 sm:grid-cols-2">
                   {studios.map((s) => (
                     <button
                       key={s.slug}
                       type="button"
                       onClick={() => pickStudio(s.slug)}
                       className={cn(
-                        "flex items-center gap-4 border p-3 text-left transition-colors",
-                        studio === s.slug ? "border-ink bg-ink text-paper" : "border-line hover:border-ink",
+                        "overflow-hidden border text-left transition-colors",
+                        studio === s.slug ? "border-ink" : "border-line hover:border-ink",
                       )}
                     >
-                      <span className="relative h-16 w-20 shrink-0 overflow-hidden bg-paper-deep">
+                      <span className="relative block aspect-[4/3] w-full bg-paper-deep">
                         <Image
                           src={s.images[0].src}
                           alt=""
                           fill
-                          sizes="80px"
+                          sizes="(max-width: 640px) 90vw, 260px"
                           className="object-cover"
                         />
                       </span>
-                      <span className="min-w-0 flex-1">
+                      <span
+                        className={cn(
+                          "block p-4",
+                          studio === s.slug ? "bg-ink text-paper" : "bg-paper",
+                        )}
+                      >
                         <span className="block font-serif text-lg tracking-tight">{s.subtitle}</span>
                         <span className="mt-1 block text-sm opacity-70">
                           {formatMoney(s.pricePerHour)}–{formatMoney(s.weekendPricePerHour)} / hour
@@ -332,7 +337,7 @@ export function BookingDrawer() {
               )}
             </div>
 
-            <div className="border-t border-line bg-paper px-5 py-4 sm:px-6">
+            <div className="border-t border-line bg-paper px-6 py-5 sm:px-8">
               {breakdown && (
                 <div className="mb-3 flex items-center justify-between text-xs text-ink-faint">
                   <span className="truncate">

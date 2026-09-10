@@ -47,36 +47,38 @@ export function BookingForm({
         />
       </div>
 
-      <div>
-        <label htmlFor="bf-phone" className="eyebrow">
-          Phone
-        </label>
-        <input
-          id="bf-phone"
-          type="tel"
-          className={cn(field, "mt-2")}
-          value={values.phone}
-          onChange={(e) => onChange({ ...values, phone: e.target.value })}
-          autoComplete="tel"
-          placeholder="+373 ..."
-          required
-        />
-      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div>
+          <label htmlFor="bf-phone" className="eyebrow">
+            Phone
+          </label>
+          <input
+            id="bf-phone"
+            type="tel"
+            className={cn(field, "mt-2")}
+            value={values.phone}
+            onChange={(e) => onChange({ ...values, phone: e.target.value })}
+            autoComplete="tel"
+            placeholder="+373 ..."
+            required
+          />
+        </div>
 
-      <div>
-        <label htmlFor="bf-email" className="eyebrow">
-          Email
-        </label>
-        <input
-          id="bf-email"
-          type="email"
-          className={cn(field, "mt-2")}
-          value={values.email}
-          onChange={(e) => onChange({ ...values, email: e.target.value })}
-          autoComplete="email"
-          placeholder="you@email.com"
-          required
-        />
+        <div>
+          <label htmlFor="bf-email" className="eyebrow">
+            Email
+          </label>
+          <input
+            id="bf-email"
+            type="email"
+            className={cn(field, "mt-2")}
+            value={values.email}
+            onChange={(e) => onChange({ ...values, email: e.target.value })}
+            autoComplete="email"
+            placeholder="you@email.com"
+            required
+          />
+        </div>
       </div>
 
       <label className="flex cursor-pointer items-start gap-3 pt-2 text-sm text-ink-soft">
