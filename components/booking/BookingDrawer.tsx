@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
+import { AnimatePresence, motion } from "framer-motion";
 import { X } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { studios, type StudioSlug } from "@/lib/studios";
@@ -18,6 +19,8 @@ import { TimeSlots } from "./TimeSlots";
 import { AddOns } from "./AddOns";
 import { BookingForm, type CustomerFields } from "./BookingForm";
 import { useBookingDrawer } from "./BookingDrawerContext";
+
+const ease = [0.22, 1, 0.36, 1] as const;
 
 const emptyCustomer: CustomerFields = { name: "", email: "", phone: "" };
 
@@ -196,22 +199,30 @@ export function BookingDrawer() {
     return `Pay ${formatMoney(breakdown.subtotal)} & book`;
   })();
 
-  if (!isOpen) return null;
-
   return (
-    <>
-      <button
-        type="button"
-        aria-label="Close"
-        className="fixed inset-0 z-[80] bg-black/45"
-        onClick={closeBooking}
-      />
-      <aside
-        role="dialog"
-        aria-modal="true"
-        aria-label="Book a studio"
-        className="fixed inset-0 z-[90] flex w-full flex-col bg-paper sm:inset-y-0 sm:right-0 sm:left-auto sm:w-[85vw] sm:max-w-[560px] lg:w-[55vw] lg:max-w-[760px]"
-      >
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          <motion.button
+            type="button"
+            aria-label="Close"
+            className="fixed inset-0 z-[80] bg-black/45"
+            onClick={closeBooking}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+          />
+          <motion.aside
+            role="dialog"
+            aria-modal="true"
+            aria-label="Book a studio"
+            className="fixed inset-0 z-[90] flex w-full flex-col bg-paper sm:inset-y-0 sm:right-0 sm:left-auto sm:w-[85vw] sm:max-w-[560px] lg:w-[55vw] lg:max-w-[760px]"
+            initial={{ x: "100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "100%" }}
+            transition={{ duration: 0.4, ease }}
+          >
             <div className="flex items-center justify-between border-b border-line px-6 py-5 sm:px-8">
               <p className="font-serif text-xl tracking-tight">Book a studio</p>
               <button
@@ -364,8 +375,10 @@ export function BookingDrawer() {
                 Payment is safe. We never see your card.
               </p>
             </div>
-      </aside>
-    </>
+          </motion.aside>
+        </>
+      )}
+    </AnimatePresence>
   );
 }
 
