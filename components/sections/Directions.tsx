@@ -1,8 +1,28 @@
+import { Bell, ArrowUpRight, MapPin } from "lucide-react";
 import { Container } from "@/components/ui/Container";
+import { cn } from "@/lib/cn";
 import { site } from "@/lib/site";
 
 export function Directions() {
   const { contact } = site;
+
+  const steps = [
+    {
+      icon: MapPin,
+      label: "Arrive",
+      text: `${contact.address.line1}, ${contact.address.line2}`,
+    },
+    {
+      icon: Bell,
+      label: "Ring the buzzer",
+      text: "We'll let you in.",
+    },
+    {
+      icon: ArrowUpRight,
+      label: "Follow the signs",
+      text: "Straight to Studio 98.",
+    },
+  ];
 
   return (
     <section id="directions" className="border-t border-line bg-paper py-20 sm:py-28">
@@ -12,15 +32,27 @@ export function Directions() {
           Getting to {site.name}.
         </h2>
 
-        <div className="mt-12 grid gap-10 lg:grid-cols-12 lg:gap-16">
-          <div className="lg:col-span-4">
-            <ol className="space-y-6">
-              <Step n="1" text={`Head to ${contact.address.line1}, ${contact.address.line2}.`} />
-              <Step n="2" text="Ring the buzzer at the main entrance — we'll let you in." />
-              <Step n="3" text="Take the stairs or lift and follow the signs to Studio 98." />
-            </ol>
+        <ol className="mt-16 grid gap-10 sm:grid-cols-3 sm:gap-8">
+          {steps.map((s, i) => (
+            <li
+              key={s.label}
+              className={cn("flex flex-col gap-4", i > 0 && "sm:border-l sm:border-line sm:pl-8")}
+            >
+              <span className="grid h-12 w-12 place-items-center border border-ink">
+                <s.icon size={18} strokeWidth={1.5} />
+              </span>
+              <div>
+                <p className="eyebrow">Step {i + 1}</p>
+                <p className="mt-1 font-serif text-xl tracking-tight">{s.label}</p>
+                <p className="mt-1 text-sm text-ink-soft">{s.text}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
 
-            <dl className="mt-10 space-y-4 text-sm">
+        <div className="mt-16 grid gap-10 lg:grid-cols-12 lg:gap-16">
+          <div className="lg:col-span-4">
+            <dl className="space-y-4 text-sm">
               <div>
                 <dt className="eyebrow">Address</dt>
                 <dd className="mt-1 text-ink-soft">
@@ -62,14 +94,5 @@ export function Directions() {
         </div>
       </Container>
     </section>
-  );
-}
-
-function Step({ n, text }: { n: string; text: string }) {
-  return (
-    <li className="flex gap-4">
-      <span className="font-serif text-2xl leading-none text-ink-faint">{n}</span>
-      <p className="pt-0.5 text-ink-soft">{text}</p>
-    </li>
   );
 }
