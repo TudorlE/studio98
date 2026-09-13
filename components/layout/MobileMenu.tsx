@@ -100,18 +100,6 @@ export function MobileMenu({ open, onClose }: { open: boolean; onClose: () => vo
                   Book a studio
                 </button>
 
-                <div className="mt-6 space-y-1 text-sm text-ink-soft">
-                  <a href={site.contact.phoneHref} className="block hover:text-ink">
-                    {site.contact.phone}
-                  </a>
-                  <a href={site.contact.emailHref} className="block hover:text-ink">
-                    {site.contact.email}
-                  </a>
-                  <p>
-                    {site.contact.address.line1}, {site.contact.address.line2}
-                  </p>
-                </div>
-
                 <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-[0.7rem] uppercase tracking-[0.14em] text-ink-faint">
                   <span>© 2026 {site.name}</span>
                   {legal.map((l) => (

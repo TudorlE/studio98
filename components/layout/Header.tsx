@@ -24,7 +24,7 @@ export function Header() {
           </button>
 
           <AnchorLink href="#top" aria-label="Studio 98 — home">
-            <Logo variant="black" className="h-12 sm:h-16 lg:h-20" />
+            <Logo variant="mark" className="h-14 sm:h-20 lg:h-24" />
           </AnchorLink>
 
           <button
