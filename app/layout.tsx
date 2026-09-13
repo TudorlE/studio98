@@ -5,6 +5,7 @@ import { site } from "@/lib/site";
 import { BookingDrawerProvider } from "@/components/booking/BookingDrawerContext";
 import { BookingDrawer } from "@/components/booking/BookingDrawer";
 import { StudioDetailsProvider } from "@/components/sections/StudioDetailsContext";
+import { LoadingProvider } from "@/components/loading/LoadingProvider";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -59,12 +60,14 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={`${inter.variable} ${cormorant.variable} h-full`}>
       <body className="min-h-full flex flex-col">
-        <StudioDetailsProvider>
-          <BookingDrawerProvider>
-            {children}
-            <BookingDrawer />
-          </BookingDrawerProvider>
-        </StudioDetailsProvider>
+        <LoadingProvider>
+          <StudioDetailsProvider>
+            <BookingDrawerProvider>
+              {children}
+              <BookingDrawer />
+            </BookingDrawerProvider>
+          </StudioDetailsProvider>
+        </LoadingProvider>
       </body>
     </html>
   );

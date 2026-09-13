@@ -20,16 +20,16 @@ export const site = {
     email: "hello@studio98.example",
     emailHref: "mailto:hello@studio98.example",
     address: {
-      line1: "Str. Placeholder 00",
-      line2: "MD-2000, Chișinău",
+      line1: "31 August 1989 St 98",
+      line2: "MD-2004, Chișinău",
       country: "Moldova",
     },
-    // Google Maps: replace with the real place query / embed.
-    mapsQuery: "Studio 98 Chisinau",
+    // Real location — pinned by coordinates so the embed and directions match exactly.
+    mapsQuery: "31 August 1989 St 98, MD-2004, Chișinău, Moldova",
     mapsEmbedSrc:
-      "https://www.google.com/maps?q=Chi%C8%99in%C4%83u&output=embed",
+      "https://www.google.com/maps?q=47.028892,28.8209084&output=embed",
     mapsDirectionsUrl:
-      "https://www.google.com/maps/dir/?api=1&destination=Chisinau",
+      "https://www.google.com/maps/dir/?api=1&destination=47.028892,28.8209084",
   },
   social: {
     instagram: "https://instagram.com/", // TODO
