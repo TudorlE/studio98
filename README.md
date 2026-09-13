@@ -38,9 +38,9 @@ pages; on the homepage that same information is one tap away in the menu
 
 - **Next.js 16** (App Router, Turbopack) · **React 19** · **TypeScript (strict)**
 - **Tailwind CSS v4** — design tokens in [`app/globals.css`](app/globals.css)
-- **Framer Motion** — used for one thing only: swipe-to-navigate in the photo
-  lightbox ([`components/gallery/Lightbox.tsx`](components/gallery/Lightbox.tsx)).
-  No decorative/entrance animation anywhere on the site by design.
+- **Framer Motion** — swipe-to-navigate on a studio's photo
+  ([`components/sections/StudioDetails.tsx`](components/sections/StudioDetails.tsx)),
+  plus slide-in panels for the menu and booking drawer.
 - **lucide-react** — icons
 - **Supabase** — database + availability + bookings
 - **Stripe** — card / Apple Pay / Google Pay via hosted checkout
@@ -160,10 +160,10 @@ components/
              only other nav — studios, contact, legal), Footer (used on the
              confirmation/legal pages), NoScrollEffect (locks the homepage
              to one screen)
-  sections/  Hero (the one homepage screen + the 2 studio tiles),
-             StudioTile, StudioDetails (full-screen photos-and-details
-             overlay), StudioDetailsContext
-  gallery/   Lightbox (opened from a studio's details overlay)
+  sections/  Hero (the 2 studio tiles), StudioTile, StudioDetails
+             (full-screen photos-and-details overlay, photo swiped
+             directly — no separate gallery), StudioDetailsContext,
+             Directions (how to find us), Rules (house rules)
   booking/   BookingDrawerContext (global open/close state), BookingDrawer
              (the slide-over panel — studio → day → duration → time → extras
              → details), BookingCalendar, TimeSlots, AddOns, BookingForm,
