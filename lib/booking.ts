@@ -138,14 +138,16 @@ export type MultiDateBreakdown = {
   dueAtStudio: number;
 };
 
-/** Same studio + time, booked across one or more dates (duration fixed at 1h). */
+/** Same studio + start time + duration, booked across one or more dates. */
 export function multiDatePriceBreakdown(params: {
   slug: StudioSlug;
   dates: string[];
+  durationHours?: number;
 }): MultiDateBreakdown {
+  const durationHours = params.durationHours ?? 1;
   const perDate = params.dates.map((date) => ({
     date,
-    breakdown: priceBreakdown({ slug: params.slug, date, durationHours: 1 }),
+    breakdown: priceBreakdown({ slug: params.slug, date, durationHours }),
   }));
   const rates = new Set(perDate.map((d) => d.breakdown.rate));
   return {
@@ -224,4 +226,18 @@ export function addDays(d: Date, days: number): Date {
 
 export function endTimeFor(startTime: string, durationHours: number): string {
   return minutesToTime(timeToMinutes(startTime) + durationHours * 60);
+}
+
+/** "Europe/Chișinău (GMT+2)" / "(GMT+3)" — the studio's own timezone, DST-aware. */
+export function studioTimezoneLabel(): string {
+  try {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: "Europe/Chisinau",
+      timeZoneName: "shortOffset",
+    }).formatToParts(new Date());
+    const offset = parts.find((p) => p.type === "timeZoneName")?.value;
+    return offset ? `Europe/Chișinău (${offset})` : "Europe/Chișinău";
+  } catch {
+    return "Europe/Chișinău";
+  }
 }

@@ -3,23 +3,35 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronLeft, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, X } from "lucide-react";
+import { cn } from "@/lib/cn";
+import { site } from "@/lib/site";
 import { studios, type StudioSlug } from "@/lib/studios";
 import {
+  addDays,
+  endTimeFor,
   formatMoney,
+  generateDaySlots,
+  localDateString,
   multiDatePriceBreakdown,
   rateForDate,
+  studioTimezoneLabel,
   type SlotStatus,
 } from "@/lib/booking";
-import { BookingCalendar } from "./BookingCalendar";
-import { TimeSlots } from "./TimeSlots";
 import { BookingForm, type CustomerFields } from "./BookingForm";
 import { useBookingDrawer } from "./BookingDrawerContext";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 const emptyCustomer: CustomerFields = { name: "", email: "", phone: "" };
 
-type Step = 1 | 2 | 3 | 4;
+const DOW = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const MONTHS = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
+
+type Step = 1 | 2 | 3;
+type DayStatus = "busy" | "full";
 
 /** Every slot must be free on every selected date to count as available. */
 function intersectStatuses(maps: Record<string, SlotStatus>[]): Record<string, SlotStatus> {
@@ -40,7 +52,19 @@ export function BookingDrawer() {
   const [step, setStep] = useState<Step>(1);
   const [studio, setStudio] = useState<StudioSlug | null>(null);
   const [dates, setDates] = useState<string[]>([]);
-  const [startTime, setStartTime] = useState<string | null>(null);
+  const [times, setTimes] = useState<string[]>([]);
+  const allTimes = useMemo(() => generateDaySlots().map((s) => s.time), []);
+  const tzLabel = useMemo(() => studioTimezoneLabel(), []);
+
+  const today = useMemo(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }, []);
+  const [monthCursor, setMonthCursor] = useState(
+    () => new Date(today.getFullYear(), today.getMonth(), 1),
+  );
+  const [monthStatus, setMonthStatus] = useState<Record<string, DayStatus>>({});
 
   const [statuses, setStatuses] = useState<Record<string, SlotStatus> | null>(null);
   const [availabilityError, setAvailabilityError] = useState<string | null>(null);
@@ -61,13 +85,14 @@ export function BookingDrawer() {
     setStudio(initialStudio);
     setStep(initialStudio ? 2 : 1);
     setDates([]);
-    setStartTime(null);
+    setTimes([]);
     setStatuses(null);
     setAvailabilityError(null);
+    setMonthCursor(new Date(today.getFullYear(), today.getMonth(), 1));
     setCustomer(emptyCustomer);
     setTerms(false);
     setSubmitError(null);
-  }, [isOpen, initialStudio]);
+  }, [isOpen, initialStudio, today]);
 
   // Lock page scroll + close on Escape while open.
   useEffect(() => {
@@ -82,6 +107,24 @@ export function BookingDrawer() {
     };
   }, [isOpen, closeBooking]);
 
+  // Which days this month are partly/fully booked — feeds the date strip.
+  useEffect(() => {
+    if (!isOpen || !studio) return;
+    const ctrl = new AbortController();
+    const params = new URLSearchParams({
+      studio,
+      year: String(monthCursor.getFullYear()),
+      month: String(monthCursor.getMonth() + 1),
+    });
+    fetch(`/api/availability/month?${params}`, { signal: ctrl.signal })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: { status?: Record<string, DayStatus> } | null) => {
+        setMonthStatus(data?.status ?? {});
+      })
+      .catch(() => setMonthStatus({}));
+    return () => ctrl.abort();
+  }, [isOpen, studio, monthCursor]);
+
   const loadAvailability = useCallback(
     async (slug: StudioSlug, days: string[], signal: AbortSignal) => {
       try {
@@ -91,11 +134,13 @@ export function BookingDrawer() {
             const res = await fetch(`/api/availability?${params}`, { signal });
             if (!res.ok) throw new Error("bad status");
             const data: { slots: Record<string, SlotStatus> } = await res.json();
-            return data.slots;
+            return [day, data.slots] as const;
           }),
         );
-        setStatuses(intersectStatuses(maps));
-        setStartTime((cur) => (cur && maps.every((m) => m[cur] === "available") ? cur : null));
+        setStatuses(intersectStatuses(maps.map(([, m]) => m)));
+        setTimes((cur) =>
+          cur.length > 0 && cur.every((t) => maps.every(([, m]) => m[t] === "available")) ? cur : [],
+        );
       } catch (err) {
         if ((err as Error).name === "AbortError") return;
         setAvailabilityError("Couldn't load times. Please try again.");
@@ -118,15 +163,17 @@ export function BookingDrawer() {
   const studioData = studios.find((s) => s.slug === studio) ?? null;
 
   const breakdown = useMemo(
-    () => (studio && dates.length > 0 ? multiDatePriceBreakdown({ slug: studio, dates }) : null),
-    [studio, dates],
+    () =>
+      studio && dates.length > 0
+        ? multiDatePriceBreakdown({ slug: studio, dates, durationHours: times.length || 1 })
+        : null,
+    [studio, dates, times.length],
   );
-  const pricePerHour = studio && dates[0] ? rateForDate(studio, dates[0]) : 0;
 
   const canSubmit = Boolean(
     studio &&
       dates.length > 0 &&
-      startTime &&
+      times.length > 0 &&
       terms &&
       customer.name.trim().length >= 2 &&
       /.+@.+\..+/.test(customer.email) &&
@@ -136,25 +183,36 @@ export function BookingDrawer() {
   const pickStudio = (slug: StudioSlug) => {
     setStudio(slug);
     setDates([]);
-    setStartTime(null);
+    setTimes([]);
     setStatuses(null);
     setStep(2);
   };
 
   const toggleDate = (d: string) => {
     setDates((cur) => (cur.includes(d) ? cur.filter((x) => x !== d) : [...cur, d].sort()));
-    setStartTime(null);
+    setTimes([]);
   };
 
+  /** Tap a time to start, tap another to book every hour in between. */
   const pickTime = (t: string) => {
-    setStartTime(t);
-    setStep(4);
+    if (!statuses) return;
+    setTimes((cur) => {
+      if (cur.length === 0) return [t];
+      if (cur.length === 1 && cur[0] === t) return [];
+      const anchor = cur[0];
+      const ia = allTimes.indexOf(anchor);
+      const it = allTimes.indexOf(t);
+      if (ia === -1 || it === -1) return [t];
+      const [lo, hi] = ia <= it ? [ia, it] : [it, ia];
+      const range = allTimes.slice(lo, hi + 1);
+      return range.every((time) => statuses[time] === "available") ? range : [t];
+    });
   };
 
   const goBack = () => setStep((s) => (s > 1 ? ((s - 1) as Step) : s));
 
   const submit = useCallback(async () => {
-    if (!studio || dates.length === 0 || !startTime || !canSubmit) return;
+    if (!studio || dates.length === 0 || times.length === 0 || !canSubmit) return;
     setSubmitting(true);
     setSubmitError(null);
     try {
@@ -164,8 +222,8 @@ export function BookingDrawer() {
         body: JSON.stringify({
           studio,
           dates,
-          startTime,
-          durationHours: 1,
+          startTime: times[0],
+          durationHours: times.length,
           addOnIds: [],
           customer: {
             name: customer.name.trim(),
@@ -183,9 +241,8 @@ export function BookingDrawer() {
       }
       if (res.status === 409) {
         setSubmitError(data.error ?? "One of those times was just taken.");
-        setStartTime(null);
-        setStatuses(null);
-        setStep(3);
+        setTimes([]);
+        setStep(2);
         setReloadKey((k) => k + 1);
         return;
       }
@@ -195,7 +252,7 @@ export function BookingDrawer() {
     } finally {
       setSubmitting(false);
     }
-  }, [studio, dates, startTime, customer, canSubmit]);
+  }, [studio, dates, times, customer, canSubmit]);
 
   const buttonLabel = (() => {
     if (submitting) return "Booking…";
@@ -204,12 +261,29 @@ export function BookingDrawer() {
     return `Pay ${formatMoney(breakdown.total)} & book`;
   })();
 
+  const timeSummary =
+    times.length === 0
+      ? null
+      : times.length === 1
+        ? times[0]
+        : `${times[0]}–${endTimeFor(times[times.length - 1], 1)}`;
+
   const stepTitle: Record<Step, string> = {
     1: "Choose a studio",
-    2: "Pick your days",
-    3: "Pick a time",
-    4: "Your details",
+    2: "Day & time",
+    3: "Your details",
   };
+
+  const monthDays = useMemo(() => {
+    const count = new Date(monthCursor.getFullYear(), monthCursor.getMonth() + 1, 0).getDate();
+    return Array.from({ length: count }, (_, i) => new Date(monthCursor.getFullYear(), monthCursor.getMonth(), i + 1));
+  }, [monthCursor]);
+
+  const maxDate = useMemo(() => addDays(today, site.booking.maxAdvanceDays), [today]);
+  const canPrevMonth = monthCursor > new Date(today.getFullYear(), today.getMonth(), 1);
+  const canNextMonth = monthCursor < new Date(maxDate.getFullYear(), maxDate.getMonth(), 1);
+  const shiftMonth = (delta: number) =>
+    setMonthCursor((c) => new Date(c.getFullYear(), c.getMonth() + delta, 1));
 
   return (
     <AnimatePresence>
@@ -229,7 +303,7 @@ export function BookingDrawer() {
             role="dialog"
             aria-modal="true"
             aria-label="Book a studio"
-            className="fixed inset-0 z-[90] flex w-full flex-col bg-paper sm:inset-y-0 sm:right-0 sm:left-auto sm:w-[85vw] sm:max-w-[560px] lg:w-[55vw] lg:max-w-[760px]"
+            className="fixed inset-0 z-[90] flex w-full flex-col bg-paper font-sans sm:inset-y-0 sm:right-0 sm:left-auto sm:w-[85vw] sm:max-w-[560px] lg:w-[55vw] lg:max-w-[760px]"
             initial={{ x: "100%" }}
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
@@ -260,11 +334,16 @@ export function BookingDrawer() {
             {/* Where you are + what you've picked so far — always visible, no scrolling needed. */}
             <div className="flex items-center gap-2 border-b border-line px-6 py-3 text-xs text-ink-faint sm:px-8">
               <span className="font-medium text-ink">
-                Step {step} of 4 — {stepTitle[step]}
+                Step {step} of 3 — {stepTitle[step]}
               </span>
-              {(studioData || dates.length > 0 || startTime) && (
+              {(studioData || dates.length > 0 || timeSummary) && (
                 <span className="truncate">
-                  · {[studioData?.subtitle, dates.length > 0 && `${dates.length} day${dates.length > 1 ? "s" : ""}`, startTime]
+                  ·{" "}
+                  {[
+                    studioData?.subtitle,
+                    dates.length > 0 && `${dates.length} day${dates.length > 1 ? "s" : ""}`,
+                    timeSummary,
+                  ]
                     .filter(Boolean)
                     .join(" · ")}
                 </span>
@@ -303,52 +382,151 @@ export function BookingDrawer() {
 
               {step === 2 && studio && (
                 <div>
-                  <p className="mb-5 text-sm text-ink-soft">
-                    Pick one day, or several — tap a day to add or remove it.
-                  </p>
-                  <BookingCalendar studio={studio} values={dates} onToggle={toggleDate} />
+                  {/* Month navigator */}
+                  <div className="flex items-center justify-center gap-3 sm:gap-4">
+                    <button
+                      type="button"
+                      onClick={() => shiftMonth(-1)}
+                      disabled={!canPrevMonth}
+                      aria-label="Previous month"
+                      className="grid h-8 w-8 shrink-0 place-items-center text-neutral-400 disabled:opacity-20 enabled:hover:text-neutral-700"
+                    >
+                      <ChevronLeft size={18} />
+                    </button>
+                    {canPrevMonth && (
+                      <button
+                        type="button"
+                        onClick={() => shiftMonth(-1)}
+                        className="hidden text-sm text-neutral-400 hover:text-neutral-700 sm:block"
+                      >
+                        {MONTHS[(monthCursor.getMonth() + 11) % 12]}
+                      </button>
+                    )}
+                    <span className="flex items-center gap-2 rounded-full bg-blue-600 px-5 py-2 text-sm font-semibold text-white">
+                      {MONTHS[monthCursor.getMonth()]} {monthCursor.getFullYear()}
+                    </span>
+                    {canNextMonth && (
+                      <button
+                        type="button"
+                        onClick={() => shiftMonth(1)}
+                        className="hidden text-sm text-neutral-400 hover:text-neutral-700 sm:block"
+                      >
+                        {MONTHS[(monthCursor.getMonth() + 1) % 12]}
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => shiftMonth(1)}
+                      disabled={!canNextMonth}
+                      aria-label="Next month"
+                      className="grid h-8 w-8 shrink-0 place-items-center text-neutral-400 disabled:opacity-20 enabled:hover:text-neutral-700"
+                    >
+                      <ChevronRight size={18} />
+                    </button>
+                  </div>
 
-                  {dates.length > 0 && (
-                    <ul className="mt-6 flex flex-wrap gap-2">
-                      {dates.map((d) => (
-                        <li key={d}>
-                          <button
-                            type="button"
-                            onClick={() => toggleDate(d)}
-                            className="flex items-center gap-2 border border-ink/25 px-3 py-1.5 text-sm hover:border-ink"
+                  {/* Horizontal day strip — tap to add/remove a day */}
+                  <div className="mt-6 -mx-6 flex gap-3 overflow-x-auto px-6 pb-2 sm:-mx-8 sm:px-8">
+                    {monthDays.map((date) => {
+                      const iso = localDateString(date);
+                      const status = monthStatus[iso];
+                      const full = status === "full";
+                      const disabled = date < today || date > maxDate || full;
+                      const selected = dates.includes(iso);
+                      return (
+                        <button
+                          key={iso}
+                          type="button"
+                          disabled={disabled}
+                          onClick={() => toggleDate(iso)}
+                          className="flex shrink-0 flex-col items-center gap-1.5"
+                        >
+                          <span
+                            className={cn(
+                              "text-[0.65rem] font-medium uppercase tracking-wide",
+                              selected ? "text-blue-600" : "text-neutral-400",
+                            )}
                           >
-                            {d}
-                            <X size={13} strokeWidth={2} />
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
+                            {DOW[date.getDay()]}
+                          </span>
+                          <span
+                            className={cn(
+                              "grid h-11 w-11 place-items-center rounded-full text-sm font-medium transition-colors",
+                              disabled && "text-neutral-300 line-through",
+                              !disabled && !selected && "bg-neutral-100 text-neutral-800 hover:bg-neutral-200",
+                              selected && "bg-blue-600 text-white",
+                            )}
+                          >
+                            {date.getDate()}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* One section per selected day, each with its own hourly grid */}
+                  {dates.length === 0 && (
+                    <p className="mt-8 text-sm text-neutral-500">
+                      Pick one day, or several — the same hour books across all of them.
+                    </p>
                   )}
+
+                  {availabilityError && <p className="mt-8 text-sm text-neutral-500">{availabilityError}</p>}
+
+                  {!availabilityError &&
+                    dates.map((d) => {
+                      const dateObj = new Date(`${d}T00:00:00`);
+                      const loadingDay = !statuses;
+                      const dayRate = rateForDate(studio, d);
+                      return (
+                        <div key={d} className="mt-9">
+                          <div className="flex items-baseline justify-between border-b border-neutral-200 pb-2">
+                            <p className="text-sm font-medium text-neutral-800">
+                              {DOW[dateObj.getDay()]}, {MONTHS[dateObj.getMonth()]} {dateObj.getDate()},{" "}
+                              {dateObj.getFullYear()}
+                            </p>
+                            <p className="text-xs text-neutral-400">{tzLabel}</p>
+                          </div>
+
+                          <div className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+                            {loadingDay
+                              ? allTimes.map((t) => (
+                                  <div key={t} className="h-16 animate-pulse rounded-2xl bg-neutral-100" />
+                                ))
+                              : allTimes.map((t) => {
+                                  const status = statuses[t] ?? "closed";
+                                  const selectable = status === "available";
+                                  const selected = times.includes(t);
+                                  return (
+                                    <button
+                                      key={t}
+                                      type="button"
+                                      disabled={!selectable}
+                                      onClick={() => pickTime(t)}
+                                      className={cn(
+                                        "flex flex-col items-center justify-center gap-1 rounded-2xl border px-2 py-3 text-center transition-colors",
+                                        selected && "border-blue-600 bg-blue-600 text-white",
+                                        !selected && selectable && "border-neutral-200 text-neutral-900 hover:border-blue-600",
+                                        !selectable && "border-neutral-100 text-neutral-300",
+                                      )}
+                                    >
+                                      <span className="text-sm font-medium">
+                                        {t} — {endTimeFor(t, 1)}
+                                      </span>
+                                      <span className={cn("text-xs", selected ? "text-white/80" : "text-neutral-400")}>
+                                        {selectable ? `from ${formatMoney(dayRate)}` : "—"}
+                                      </span>
+                                    </button>
+                                  );
+                                })}
+                          </div>
+                        </div>
+                      );
+                    })}
                 </div>
               )}
 
-              {step === 3 && studio && dates.length > 0 && (
-                <div>
-                  <p className="mb-5 text-sm text-ink-soft">
-                    {dates.length > 1
-                      ? "Same time on every day you picked."
-                      : "One hour, starting at the time you choose."}
-                  </p>
-                  {availabilityError ? (
-                    <p className="text-sm text-ink-soft">{availabilityError}</p>
-                  ) : (
-                    <TimeSlots
-                      statuses={statuses}
-                      value={startTime}
-                      onChange={pickTime}
-                      loading={!statuses}
-                      price={pricePerHour}
-                    />
-                  )}
-                </div>
-              )}
-
-              {step === 4 && (
+              {step === 3 && (
                 <BookingForm
                   values={customer}
                   onChange={setCustomer}
@@ -366,7 +544,7 @@ export function BookingDrawer() {
                   + {formatMoney(breakdown.dueAtStudio)} at the studio
                 </p>
               )}
-              {step === 4 && (
+              {step === 3 && (
                 <button
                   type="button"
                   onClick={submit}
@@ -379,17 +557,19 @@ export function BookingDrawer() {
               {step === 2 && (
                 <button
                   type="button"
-                  disabled={dates.length === 0}
+                  disabled={dates.length === 0 || times.length === 0}
                   onClick={() => setStep(3)}
-                  className="flex h-14 w-full items-center justify-center bg-ink text-[0.75rem] font-medium uppercase tracking-[0.18em] text-paper transition-colors hover:bg-ink-soft disabled:opacity-30"
+                  className="flex h-14 w-full items-center justify-center rounded-full bg-blue-600 text-[0.75rem] font-medium uppercase tracking-[0.18em] text-white transition-colors hover:bg-blue-700 disabled:opacity-30"
                 >
                   {dates.length === 0
-                    ? "Pick at least one day"
-                    : `Continue with ${dates.length} day${dates.length > 1 ? "s" : ""}`}
+                    ? "Pick a day"
+                    : times.length === 0
+                      ? "Pick a time"
+                      : `Continue with ${timeSummary}`}
                 </button>
               )}
-              {(step === 1 || step === 3) && breakdown && (
-                <div className="flex items-baseline justify-between text-sm">
+              {(step === 1 || step === 2) && breakdown && (
+                <div className="mt-3 flex items-baseline justify-between text-sm">
                   <span className="text-ink-faint">Total so far</span>
                   <span className="font-serif text-2xl tracking-tight">
                     {formatMoney(breakdown.total)}

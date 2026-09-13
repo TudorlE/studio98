@@ -157,17 +157,15 @@ app/
     webhooks/stripe/           POST payment events
 components/
   layout/    Header (centered logo + Book button), MobileMenu (the site's
-             only other nav — studios, contact, legal), Footer (used on the
-             confirmation/legal pages), NoScrollEffect (locks the homepage
-             to one screen)
+             only other nav — studios, legal), Footer (used on the
+             confirmation/legal pages)
   sections/  Hero (the 2 studio tiles), StudioTile, StudioDetails
              (full-screen photos-and-details overlay, photo swiped
              directly — no separate gallery), StudioDetailsContext,
              Directions (how to find us), Rules (house rules)
   booking/   BookingDrawerContext (global open/close state), BookingDrawer
-             (the slide-over panel — studio → day → duration → time → extras
-             → details), BookingCalendar, TimeSlots, AddOns, BookingForm,
-             BookStudioButton
+             (the slide-over panel — studio → day & time (date strip +
+             per-day hourly grid) → details), BookingForm, BookStudioButton
   ui/        Container, Button, AnchorLink (smooth in-page scroll), Logo
 lib/
   site.ts        contact / hours / currency config  (PLACEHOLDER)
