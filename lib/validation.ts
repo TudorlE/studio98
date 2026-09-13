@@ -13,9 +13,16 @@ export const availabilityQuerySchema = z.object({
   date: dateStr,
 });
 
+export const monthAvailabilityQuerySchema = z.object({
+  studio: slugEnum,
+  year: z.coerce.number().int().min(2020).max(2100),
+  month: z.coerce.number().int().min(1).max(12),
+});
+
 export const createBookingSchema = z.object({
   studio: slugEnum,
-  date: dateStr,
+  // One or more dates — same studio, same start time, booked together.
+  dates: z.array(dateStr).min(1).max(14),
   startTime: timeStr,
   durationHours: z
     .number()

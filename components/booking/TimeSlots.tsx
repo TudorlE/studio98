@@ -1,26 +1,29 @@
 "use client";
 
 import { cn } from "@/lib/cn";
-import { generateDaySlots, type SlotStatus } from "@/lib/booking";
+import { generateDaySlots, formatMoney, type SlotStatus } from "@/lib/booking";
 
 export function TimeSlots({
   statuses,
   value,
   onChange,
   loading,
+  price,
 }: {
   statuses: Record<string, SlotStatus> | null;
   value: string | null;
   onChange: (time: string) => void;
   loading: boolean;
+  /** Price for one hour at this rate — shown under every slot. */
+  price: number;
 }) {
   const slots = generateDaySlots();
 
   if (loading) {
     return (
-      <div className="grid grid-cols-4 gap-2 sm:grid-cols-5 lg:grid-cols-6">
+      <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
         {slots.map((s) => (
-          <div key={s.time} className="h-11 animate-pulse bg-paper-deep" />
+          <div key={s.time} className="h-14 animate-pulse bg-paper-deep" />
         ))}
       </div>
     );
@@ -32,7 +35,7 @@ export function TimeSlots({
 
   return (
     <div>
-      <div className="grid grid-cols-4 gap-2 sm:grid-cols-5 lg:grid-cols-6">
+      <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
         {slots.map((s) => {
           const status = statuses[s.time] ?? "closed";
           const selectable = status === "available";
@@ -45,29 +48,32 @@ export function TimeSlots({
               onClick={() => onChange(s.time)}
               aria-pressed={selected}
               className={cn(
-                "flex h-11 items-center justify-center border text-sm transition-colors",
+                "flex h-14 flex-col items-center justify-center border transition-colors",
                 selected && "border-ink bg-ink text-paper",
                 !selected && selectable && "border-line hover:border-ink",
-                !selectable && "border-line/60 text-ink-faint line-through",
+                !selectable && "border-line/60 text-ink-faint",
               )}
               title={
                 status === "booked"
-                  ? "Booked"
+                  ? "Already booked"
                   : status === "past"
                     ? "Too late to book"
                     : status === "closed"
-                      ? "Outside opening hours for this duration"
+                      ? "Outside opening hours"
                       : "Available"
               }
             >
-              {s.time}
+              <span className={cn("text-sm", !selectable && "line-through")}>{s.time}</span>
+              <span className={cn("text-xs opacity-70", selected && "opacity-90")}>
+                {selectable ? formatMoney(price) : "—"}
+              </span>
             </button>
           );
         })}
       </div>
       {!anyAvailable && (
         <p className="mt-4 text-sm text-ink-soft">
-          No slots left for this date and duration. Try another day or a shorter session.
+          No free times on this day. Try a different day.
         </p>
       )}
     </div>

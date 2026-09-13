@@ -128,6 +128,36 @@ export function priceBreakdown(params: {
   };
 }
 
+export type MultiDateBreakdown = {
+  perDate: { date: string; breakdown: PriceBreakdown }[];
+  /** True when the selected dates don't all share the same hourly rate. */
+  mixedRates: boolean;
+  depositPercent: number;
+  total: number;
+  dueNow: number;
+  dueAtStudio: number;
+};
+
+/** Same studio + time, booked across one or more dates (duration fixed at 1h). */
+export function multiDatePriceBreakdown(params: {
+  slug: StudioSlug;
+  dates: string[];
+}): MultiDateBreakdown {
+  const perDate = params.dates.map((date) => ({
+    date,
+    breakdown: priceBreakdown({ slug: params.slug, date, durationHours: 1 }),
+  }));
+  const rates = new Set(perDate.map((d) => d.breakdown.rate));
+  return {
+    perDate,
+    mixedRates: rates.size > 1,
+    depositPercent: perDate[0]?.breakdown.depositPercent ?? 100,
+    total: perDate.reduce((sum, d) => sum + d.breakdown.subtotal, 0),
+    dueNow: perDate.reduce((sum, d) => sum + d.breakdown.dueNow, 0),
+    dueAtStudio: perDate.reduce((sum, d) => sum + d.breakdown.dueAtStudio, 0),
+  };
+}
+
 function clampPercent(n: number): number {
   if (!Number.isFinite(n)) return 100;
   return Math.min(100, Math.max(1, Math.round(n)));

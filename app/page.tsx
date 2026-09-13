@@ -1,6 +1,8 @@
 import { Header } from "@/components/layout/Header";
-import { NoScrollEffect } from "@/components/layout/NoScrollEffect";
+import { Footer } from "@/components/layout/Footer";
 import { Hero } from "@/components/sections/Hero";
+import { Directions } from "@/components/sections/Directions";
+import { Rules } from "@/components/sections/Rules";
 import { site } from "@/lib/site";
 
 const jsonLd = {
@@ -26,11 +28,13 @@ export default function Home() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <NoScrollEffect />
       <Header />
       <main className="flex-1">
         <Hero />
+        <Directions />
+        <Rules />
       </main>
+      <Footer />
     </>
   );
 }

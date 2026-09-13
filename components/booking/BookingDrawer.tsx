@@ -3,35 +3,44 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
-import { X } from "lucide-react";
-import { cn } from "@/lib/cn";
+import { ChevronLeft, X } from "lucide-react";
 import { studios, type StudioSlug } from "@/lib/studios";
 import {
-  durationOptions,
   formatMoney,
-  isWeekendDate,
-  minHoursForDate,
-  priceBreakdown,
+  multiDatePriceBreakdown,
+  rateForDate,
   type SlotStatus,
 } from "@/lib/booking";
 import { BookingCalendar } from "./BookingCalendar";
 import { TimeSlots } from "./TimeSlots";
-import { AddOns } from "./AddOns";
 import { BookingForm, type CustomerFields } from "./BookingForm";
 import { useBookingDrawer } from "./BookingDrawerContext";
 
 const ease = [0.22, 1, 0.36, 1] as const;
-
 const emptyCustomer: CustomerFields = { name: "", email: "", phone: "" };
+
+type Step = 1 | 2 | 3 | 4;
+
+/** Every slot must be free on every selected date to count as available. */
+function intersectStatuses(maps: Record<string, SlotStatus>[]): Record<string, SlotStatus> {
+  if (maps.length === 0) return {};
+  const result: Record<string, SlotStatus> = {};
+  for (const time of Object.keys(maps[0])) {
+    const values = maps.map((m) => m[time] ?? "closed");
+    result[time] = values.every((v) => v === "available")
+      ? "available"
+      : (values.find((v) => v !== "available") ?? "booked");
+  }
+  return result;
+}
 
 export function BookingDrawer() {
   const { isOpen, initialStudio, closeBooking } = useBookingDrawer();
 
+  const [step, setStep] = useState<Step>(1);
   const [studio, setStudio] = useState<StudioSlug | null>(null);
-  const [date, setDate] = useState<string | null>(null);
-  const [duration, setDuration] = useState(1);
+  const [dates, setDates] = useState<string[]>([]);
   const [startTime, setStartTime] = useState<string | null>(null);
-  const [addOns, setAddOns] = useState<string[]>([]);
 
   const [statuses, setStatuses] = useState<Record<string, SlotStatus> | null>(null);
   const [availabilityError, setAvailabilityError] = useState<string | null>(null);
@@ -50,10 +59,9 @@ export function BookingDrawer() {
     // Resetting a dialog's form state when it opens — not a data sync loop.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setStudio(initialStudio);
-    setDate(null);
-    setDuration(1);
+    setStep(initialStudio ? 2 : 1);
+    setDates([]);
     setStartTime(null);
-    setAddOns([]);
     setStatuses(null);
     setAvailabilityError(null);
     setCustomer(emptyCustomer);
@@ -74,39 +82,20 @@ export function BookingDrawer() {
     };
   }, [isOpen, closeBooking]);
 
-  const minHours = useMemo(
-    () => (studio && date ? minHoursForDate(studio, date) : 1),
-    [studio, date],
-  );
-  const weekend = date ? isWeekendDate(date) : false;
-
-  const resetTime = () => {
-    setStartTime(null);
-    setStatuses(null);
-    setAvailabilityError(null);
-  };
-
-  const pickStudio = (slug: StudioSlug) => {
-    setStudio(slug);
-    resetTime();
-  };
-
-  const pickDate = (d: string) => {
-    setDate(d);
-    resetTime();
-    const min = minHoursForDate(studio ?? "studio-01", d);
-    setDuration((cur) => (cur < min ? min : cur));
-  };
-
   const loadAvailability = useCallback(
-    async (slug: StudioSlug, day: string, hours: number, signal: AbortSignal) => {
+    async (slug: StudioSlug, days: string[], signal: AbortSignal) => {
       try {
-        const params = new URLSearchParams({ studio: slug, date: day, duration: String(hours) });
-        const res = await fetch(`/api/availability?${params}`, { signal });
-        if (!res.ok) throw new Error("bad status");
-        const data: { slots: Record<string, SlotStatus> } = await res.json();
-        setStatuses(data.slots);
-        setStartTime((cur) => (cur && data.slots[cur] === "available" ? cur : null));
+        const maps = await Promise.all(
+          days.map(async (day) => {
+            const params = new URLSearchParams({ studio: slug, date: day, duration: "1" });
+            const res = await fetch(`/api/availability?${params}`, { signal });
+            if (!res.ok) throw new Error("bad status");
+            const data: { slots: Record<string, SlotStatus> } = await res.json();
+            return data.slots;
+          }),
+        );
+        setStatuses(intersectStatuses(maps));
+        setStartTime((cur) => (cur && maps.every((m) => m[cur] === "available") ? cur : null));
       } catch (err) {
         if ((err as Error).name === "AbortError") return;
         setAvailabilityError("Couldn't load times. Please try again.");
@@ -117,41 +106,55 @@ export function BookingDrawer() {
   );
 
   useEffect(() => {
-    if (!isOpen || !studio || !date) return;
+    if (!isOpen || !studio || dates.length === 0) return;
     abortRef.current?.abort();
     const ctrl = new AbortController();
     abortRef.current = ctrl;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- keyed data fetch, state set after await
-    void loadAvailability(studio, date, duration, ctrl.signal);
+    void loadAvailability(studio, dates, ctrl.signal);
     return () => ctrl.abort();
-  }, [isOpen, studio, date, duration, reloadKey, loadAvailability]);
+  }, [isOpen, studio, dates, reloadKey, loadAvailability]);
 
   const studioData = studios.find((s) => s.slug === studio) ?? null;
 
   const breakdown = useMemo(
-    () =>
-      studio && date
-        ? priceBreakdown({ slug: studio, date, durationHours: duration, addOnIds: addOns })
-        : null,
-    [studio, date, duration, addOns],
+    () => (studio && dates.length > 0 ? multiDatePriceBreakdown({ slug: studio, dates }) : null),
+    [studio, dates],
   );
+  const pricePerHour = studio && dates[0] ? rateForDate(studio, dates[0]) : 0;
 
   const canSubmit = Boolean(
     studio &&
-      date &&
+      dates.length > 0 &&
       startTime &&
-      duration >= minHours &&
       terms &&
       customer.name.trim().length >= 2 &&
       /.+@.+\..+/.test(customer.email) &&
       customer.phone.trim().length >= 6,
   );
 
-  const toggleAddOn = (id: string) =>
-    setAddOns((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]));
+  const pickStudio = (slug: StudioSlug) => {
+    setStudio(slug);
+    setDates([]);
+    setStartTime(null);
+    setStatuses(null);
+    setStep(2);
+  };
+
+  const toggleDate = (d: string) => {
+    setDates((cur) => (cur.includes(d) ? cur.filter((x) => x !== d) : [...cur, d].sort()));
+    setStartTime(null);
+  };
+
+  const pickTime = (t: string) => {
+    setStartTime(t);
+    setStep(4);
+  };
+
+  const goBack = () => setStep((s) => (s > 1 ? ((s - 1) as Step) : s));
 
   const submit = useCallback(async () => {
-    if (!studio || !date || !startTime || !canSubmit) return;
+    if (!studio || dates.length === 0 || !startTime || !canSubmit) return;
     setSubmitting(true);
     setSubmitError(null);
     try {
@@ -160,10 +163,10 @@ export function BookingDrawer() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           studio,
-          date,
+          dates,
           startTime,
-          durationHours: duration,
-          addOnIds: addOns,
+          durationHours: 1,
+          addOnIds: [],
           customer: {
             name: customer.name.trim(),
             email: customer.email.trim(),
@@ -179,8 +182,10 @@ export function BookingDrawer() {
         return;
       }
       if (res.status === 409) {
-        setSubmitError(data.error ?? "That time was just taken. Pick another one.");
-        resetTime();
+        setSubmitError(data.error ?? "One of those times was just taken.");
+        setStartTime(null);
+        setStatuses(null);
+        setStep(3);
         setReloadKey((k) => k + 1);
         return;
       }
@@ -190,14 +195,21 @@ export function BookingDrawer() {
     } finally {
       setSubmitting(false);
     }
-  }, [studio, date, startTime, duration, addOns, customer, canSubmit]);
+  }, [studio, dates, startTime, customer, canSubmit]);
 
   const buttonLabel = (() => {
     if (submitting) return "Booking…";
     if (!breakdown) return "Book a studio";
     if (breakdown.depositPercent < 100) return `Pay ${formatMoney(breakdown.dueNow)} now`;
-    return `Pay ${formatMoney(breakdown.subtotal)} & book`;
+    return `Pay ${formatMoney(breakdown.total)} & book`;
   })();
+
+  const stepTitle: Record<Step, string> = {
+    1: "Choose a studio",
+    2: "Pick your days",
+    3: "Pick a time",
+    4: "Your details",
+  };
 
   return (
     <AnimatePresence>
@@ -224,7 +236,18 @@ export function BookingDrawer() {
             transition={{ duration: 0.4, ease }}
           >
             <div className="flex items-center justify-between border-b border-line px-6 py-5 sm:px-8">
-              <p className="font-serif text-xl tracking-tight">Book a studio</p>
+              <div className="flex items-center gap-3">
+                {step > 1 && (
+                  <button
+                    onClick={goBack}
+                    aria-label="Back"
+                    className="grid h-9 w-9 place-items-center text-ink-soft hover:text-ink"
+                  >
+                    <ChevronLeft size={20} strokeWidth={1.5} />
+                  </button>
+                )}
+                <p className="font-serif text-xl tracking-tight">Book a studio</p>
+              </div>
               <button
                 onClick={closeBooking}
                 aria-label="Close"
@@ -234,18 +257,29 @@ export function BookingDrawer() {
               </button>
             </div>
 
+            {/* Where you are + what you've picked so far — always visible, no scrolling needed. */}
+            <div className="flex items-center gap-2 border-b border-line px-6 py-3 text-xs text-ink-faint sm:px-8">
+              <span className="font-medium text-ink">
+                Step {step} of 4 — {stepTitle[step]}
+              </span>
+              {(studioData || dates.length > 0 || startTime) && (
+                <span className="truncate">
+                  · {[studioData?.subtitle, dates.length > 0 && `${dates.length} day${dates.length > 1 ? "s" : ""}`, startTime]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </span>
+              )}
+            </div>
+
             <div className="flex-1 overflow-y-auto px-6 py-7 sm:px-8">
-              <DrawerStep n={1} title="Choose a studio">
+              {step === 1 && (
                 <div className="grid gap-3 sm:grid-cols-2">
                   {studios.map((s) => (
                     <button
                       key={s.slug}
                       type="button"
                       onClick={() => pickStudio(s.slug)}
-                      className={cn(
-                        "overflow-hidden border text-left transition-colors",
-                        studio === s.slug ? "border-ink" : "border-line hover:border-ink",
-                      )}
+                      className="overflow-hidden border border-line text-left transition-colors hover:border-ink"
                     >
                       <span className="relative block aspect-[4/3] w-full bg-paper-deep">
                         <Image
@@ -256,121 +290,112 @@ export function BookingDrawer() {
                           className="object-cover"
                         />
                       </span>
-                      <span
-                        className={cn(
-                          "block p-4",
-                          studio === s.slug ? "bg-ink text-paper" : "bg-paper",
-                        )}
-                      >
+                      <span className="block bg-paper p-4">
                         <span className="block font-serif text-lg tracking-tight">{s.subtitle}</span>
-                        <span className="mt-1 block text-sm opacity-70">
+                        <span className="mt-1 block text-sm text-ink-soft">
                           {formatMoney(s.pricePerHour)}–{formatMoney(s.weekendPricePerHour)} / hour
                         </span>
                       </span>
                     </button>
                   ))}
                 </div>
-              </DrawerStep>
-
-              {studio && (
-                <DrawerStep n={2} title="Pick a day">
-                  <BookingCalendar value={date} onChange={pickDate} />
-                </DrawerStep>
               )}
 
-              {studio && date && (
-                <DrawerStep n={3} title="How long?">
-                  <div className="flex flex-wrap gap-2">
-                    {durationOptions.map((h) => {
-                      const disabled = h < minHours;
-                      return (
-                        <button
-                          key={h}
-                          type="button"
-                          disabled={disabled}
-                          onClick={() => {
-                            setDuration(h);
-                            resetTime();
-                          }}
-                          className={cn(
-                            "h-11 border px-4 text-sm transition-colors",
-                            duration === h && !disabled
-                              ? "border-ink bg-ink text-paper"
-                              : "border-line hover:enabled:border-ink",
-                            disabled && "text-ink-faint line-through",
-                          )}
-                        >
-                          {h}h
-                        </button>
-                      );
-                    })}
-                  </div>
-                  {weekend && (
-                    <p className="mt-3 text-sm text-ink-soft">
-                      Weekends need at least {minHours} hour{minHours > 1 ? "s" : ""}.
-                    </p>
+              {step === 2 && studio && (
+                <div>
+                  <p className="mb-5 text-sm text-ink-soft">
+                    Pick one day, or several — tap a day to add or remove it.
+                  </p>
+                  <BookingCalendar studio={studio} values={dates} onToggle={toggleDate} />
+
+                  {dates.length > 0 && (
+                    <ul className="mt-6 flex flex-wrap gap-2">
+                      {dates.map((d) => (
+                        <li key={d}>
+                          <button
+                            type="button"
+                            onClick={() => toggleDate(d)}
+                            className="flex items-center gap-2 border border-ink/25 px-3 py-1.5 text-sm hover:border-ink"
+                          >
+                            {d}
+                            <X size={13} strokeWidth={2} />
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
                   )}
-                </DrawerStep>
+                </div>
               )}
 
-              {studio && date && (
-                <DrawerStep n={4} title="Pick a time">
+              {step === 3 && studio && dates.length > 0 && (
+                <div>
+                  <p className="mb-5 text-sm text-ink-soft">
+                    {dates.length > 1
+                      ? "Same time on every day you picked."
+                      : "One hour, starting at the time you choose."}
+                  </p>
                   {availabilityError ? (
                     <p className="text-sm text-ink-soft">{availabilityError}</p>
                   ) : (
                     <TimeSlots
                       statuses={statuses}
                       value={startTime}
-                      onChange={setStartTime}
+                      onChange={pickTime}
                       loading={!statuses}
+                      price={pricePerHour}
                     />
                   )}
-                </DrawerStep>
+                </div>
               )}
 
-              {studio && date && startTime && (
-                <DrawerStep n={5} title="Anything extra?" optional>
-                  <AddOns selected={addOns} onToggle={toggleAddOn} />
-                </DrawerStep>
-              )}
-
-              {studio && date && startTime && (
-                <DrawerStep n={6} title="Your details">
-                  <BookingForm
-                    values={customer}
-                    onChange={setCustomer}
-                    terms={terms}
-                    onTermsChange={setTerms}
-                    onSubmit={submit}
-                    error={submitError}
-                  />
-                </DrawerStep>
+              {step === 4 && (
+                <BookingForm
+                  values={customer}
+                  onChange={setCustomer}
+                  terms={terms}
+                  onTermsChange={setTerms}
+                  onSubmit={submit}
+                  error={submitError}
+                />
               )}
             </div>
 
             <div className="border-t border-line bg-paper px-6 py-5 sm:px-8">
-              {breakdown && (
-                <div className="mb-3 flex items-center justify-between text-xs text-ink-faint">
-                  <span className="truncate">
-                    {studioData?.subtitle} · {date}
-                    {startTime ? ` · ${startTime}` : ""}
-                  </span>
-                  <span>{duration}h</span>
-                </div>
-              )}
               {breakdown && breakdown.depositPercent < 100 && breakdown.dueAtStudio > 0 && (
                 <p className="mb-2 text-xs text-ink-faint">
                   + {formatMoney(breakdown.dueAtStudio)} at the studio
                 </p>
               )}
-              <button
-                type="button"
-                onClick={submit}
-                disabled={!canSubmit || submitting}
-                className="flex h-14 w-full items-center justify-center bg-ink text-[0.75rem] font-medium uppercase tracking-[0.18em] text-paper transition-colors hover:bg-ink-soft disabled:opacity-40"
-              >
-                {buttonLabel}
-              </button>
+              {step === 4 && (
+                <button
+                  type="button"
+                  onClick={submit}
+                  disabled={!canSubmit || submitting}
+                  className="flex h-14 w-full items-center justify-center bg-ink text-[0.75rem] font-medium uppercase tracking-[0.18em] text-paper transition-colors hover:bg-ink-soft disabled:opacity-40"
+                >
+                  {buttonLabel}
+                </button>
+              )}
+              {step === 2 && (
+                <button
+                  type="button"
+                  disabled={dates.length === 0}
+                  onClick={() => setStep(3)}
+                  className="flex h-14 w-full items-center justify-center bg-ink text-[0.75rem] font-medium uppercase tracking-[0.18em] text-paper transition-colors hover:bg-ink-soft disabled:opacity-30"
+                >
+                  {dates.length === 0
+                    ? "Pick at least one day"
+                    : `Continue with ${dates.length} day${dates.length > 1 ? "s" : ""}`}
+                </button>
+              )}
+              {(step === 1 || step === 3) && breakdown && (
+                <div className="flex items-baseline justify-between text-sm">
+                  <span className="text-ink-faint">Total so far</span>
+                  <span className="font-serif text-2xl tracking-tight">
+                    {formatMoney(breakdown.total)}
+                  </span>
+                </div>
+              )}
               <p className="mt-3 text-center text-xs text-ink-faint">
                 Payment is safe. We never see your card.
               </p>
@@ -379,32 +404,5 @@ export function BookingDrawer() {
         </>
       )}
     </AnimatePresence>
-  );
-}
-
-function DrawerStep({
-  n,
-  title,
-  optional,
-  children,
-}: {
-  n: number;
-  title: string;
-  optional?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="border-t border-line py-6 first:border-t-0 first:pt-0">
-      <div className="flex items-baseline gap-2">
-        <span className="font-serif text-lg text-ink-faint">{n}.</span>
-        <h3 className="font-serif text-lg tracking-tight">{title}</h3>
-        {optional && (
-          <span className="text-[0.65rem] font-medium uppercase tracking-[0.14em] text-ink-faint">
-            optional
-          </span>
-        )}
-      </div>
-      <div className="mt-4">{children}</div>
-    </div>
   );
 }

@@ -19,42 +19,39 @@ export default async function ConfirmationPage({
 }: {
   searchParams: Promise<{ booking?: string }>;
 }) {
-  const { booking: bookingId } = await searchParams;
+  const { booking: bookingParam } = await searchParams;
+  const bookingIds = (bookingParam ?? "").split(",").map((id) => id.trim()).filter(Boolean);
 
   const sym = site.booking.currencySymbol;
 
   let details: {
-    id: string;
     studio: string;
-    date: string;
+    dates: string[];
     time: string;
-    duration: number;
-    addOns: string[];
     total: string;
     paid: string;
     balance: string | null;
     settled: boolean;
   } | null = null;
 
-  if (bookingId && isSupabaseConfigured()) {
+  if (bookingIds.length > 0 && isSupabaseConfigured()) {
     try {
-      const row = await getBooking(bookingId);
-      if (row) {
-        const slug = studios.find((s) => s.id === row.studio_id)?.slug ?? "studio-01";
-        const total = Number(row.total_price);
-        const paidAmount = Number(row.deposit_paid) || total;
+      const rows = (await Promise.all(bookingIds.map((id) => getBooking(id)))).filter(
+        (r): r is NonNullable<typeof r> => Boolean(r),
+      );
+      if (rows.length > 0) {
+        const slug = studios.find((s) => s.id === rows[0].studio_id)?.slug ?? "studio-01";
+        const total = rows.reduce((sum, r) => sum + Number(r.total_price), 0);
+        const paidAmount = rows.reduce((sum, r) => sum + (Number(r.deposit_paid) || 0), 0);
         const balance = Math.max(0, total - paidAmount);
         details = {
-          id: row.id,
           studio: studioName(slug),
-          date: row.date,
-          time: `${row.start_time.slice(0, 5)} – ${row.end_time.slice(0, 5)}`,
-          duration: row.duration,
-          addOns: (row.add_ons ?? []).map((a) => a.name),
+          dates: rows.map((r) => r.date),
+          time: `${rows[0].start_time.slice(0, 5)} – ${rows[0].end_time.slice(0, 5)}`,
           total: `${sym}${total.toFixed(0)}`,
-          paid: `${sym}${paidAmount.toFixed(0)}`,
+          paid: `${sym}${(paidAmount || total).toFixed(0)}`,
           balance: balance > 0 ? `${sym}${balance.toFixed(0)}` : null,
-          settled: row.payment_status === "paid",
+          settled: rows.every((r) => r.payment_status === "paid"),
         };
       }
     } catch {
@@ -87,16 +84,15 @@ export default async function ConfirmationPage({
           </p>
 
           <dl className="mt-12 divide-y divide-line border-y border-line text-sm">
-            <Line label="Booking ID" value={details?.id ?? bookingId ?? "—"} mono />
+            <Line label="Booking ID" value={bookingIds[0] ?? "—"} mono />
             {details && (
               <>
                 <Line label="Studio" value={details.studio} />
-                <Line label="Date" value={details.date} />
+                <Line
+                  label={details.dates.length > 1 ? "Dates" : "Date"}
+                  value={details.dates.join(", ")}
+                />
                 <Line label="Time" value={details.time} />
-                <Line label="Duration" value={`${details.duration} hour${details.duration > 1 ? "s" : ""}`} />
-                {details.addOns.length > 0 && (
-                  <Line label="Extras" value={details.addOns.join(", ")} />
-                )}
                 <Line label={details.balance ? "Paid" : "Total paid"} value={details.paid} />
                 {details.balance && <Line label="Due at studio" value={details.balance} />}
               </>

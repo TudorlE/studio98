@@ -75,6 +75,35 @@ export async function getAvailability(slug: StudioSlug, date: string, durationHo
   return computeSlotStatuses({ date, durationHours, bookedRanges });
 }
 
+/** How many active bookings each date in a month has, for the calendar's "busy" markers. */
+export async function getMonthBookingCounts(
+  slug: StudioSlug,
+  year: number,
+  month: number, // 1-12
+): Promise<Record<string, number>> {
+  const db = getSupabaseAdmin();
+  const studioId = studioIdForSlug(slug);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const start = `${year}-${pad(month)}-01`;
+  const lastDay = new Date(year, month, 0).getDate();
+  const end = `${year}-${pad(month)}-${pad(lastDay)}`;
+
+  const { data, error } = await db
+    .from("bookings")
+    .select("date")
+    .eq("studio_id", studioId)
+    .gte("date", start)
+    .lte("date", end)
+    .in("booking_status", ["hold", "confirmed"]);
+  if (error) throw error;
+
+  const counts: Record<string, number> = {};
+  for (const row of data ?? []) {
+    counts[row.date] = (counts[row.date] ?? 0) + 1;
+  }
+  return counts;
+}
+
 export type CreateHoldInput = {
   slug: StudioSlug;
   date: string;

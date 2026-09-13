@@ -32,8 +32,15 @@ export type CheckoutSession = {
 };
 
 export type WebhookResult =
-  | { type: "payment_succeeded"; bookingId: string; reference: string; amount: number }
-  | { type: "payment_failed"; bookingId: string; reference: string }
+  | {
+      type: "payment_succeeded";
+      bookingId: string;
+      /** All booking rows this payment covers (multi-day bookings). */
+      bookingIds: string[];
+      reference: string;
+      amount: number;
+    }
+  | { type: "payment_failed"; bookingId: string; bookingIds: string[]; reference: string }
   | { type: "ignored" };
 
 export interface PaymentProvider {

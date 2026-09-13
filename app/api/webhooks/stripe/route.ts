@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getPaymentProvider } from "@/lib/payments";
-import { markBookingPaid, markBookingFailed, studioName } from "@/lib/server/bookings";
+import { getBooking, markBookingPaid, markBookingFailed, studioName } from "@/lib/server/bookings";
 import { sendBookingConfirmation } from "@/lib/email";
 import { site } from "@/lib/site";
 import { studios } from "@/lib/studios";
@@ -23,33 +23,39 @@ export async function POST(req: NextRequest) {
 
   try {
     if (result.type === "payment_succeeded") {
-      const amountPaid = result.amount ? result.amount / 100 : undefined;
-      const booking = await markBookingPaid(result.bookingId, {
-        provider: getPaymentProvider().id,
-        reference: result.reference,
-        amountPaid,
-      });
-      if (booking) {
-        const slug =
-          studios.find((s) => s.id === booking.studio_id)?.slug ?? "studio-01";
+      const rows = await Promise.all(
+        result.bookingIds.map(async (id) => {
+          const row = await getBooking(id);
+          const amountPaid = row ? Number(row.total_price) : undefined;
+          return markBookingPaid(id, {
+            provider: getPaymentProvider().id,
+            reference: result.reference,
+            amountPaid,
+          });
+        }),
+      );
+      const booked = rows.filter((r): r is NonNullable<typeof r> => Boolean(r));
+      const first = booked[0];
+      if (first) {
+        const slug = studios.find((s) => s.id === first.studio_id)?.slug ?? "studio-01";
         const sym = site.booking.currencySymbol;
-        const paid = amountPaid ?? Number(booking.total_price);
-        const balance = Math.max(0, Number(booking.total_price) - paid);
+        const total = booked.reduce((sum, b) => sum + Number(b.total_price), 0);
+        const dateLabel = booked.map((b) => b.date).join(", ");
         await sendBookingConfirmation({
-          to: booking.customer_email,
-          bookingId: booking.id,
+          to: first.customer_email,
+          bookingId: booked.map((b) => b.id).join(", "),
           studioName: studioName(slug),
-          date: booking.date,
-          startTime: booking.start_time.slice(0, 5),
-          endTime: booking.end_time.slice(0, 5),
-          durationHours: booking.duration,
-          addOns: (booking.add_ons ?? []).map((a) => a.name),
-          totalPaid: `${sym}${paid.toFixed(0)}`,
-          balanceDue: balance > 0 ? `${sym}${balance.toFixed(0)}` : null,
+          date: dateLabel,
+          startTime: first.start_time.slice(0, 5),
+          endTime: first.end_time.slice(0, 5),
+          durationHours: first.duration,
+          addOns: (first.add_ons ?? []).map((a) => a.name),
+          totalPaid: `${sym}${total.toFixed(0)}`,
+          balanceDue: null,
         });
       }
     } else if (result.type === "payment_failed") {
-      await markBookingFailed(result.bookingId);
+      await Promise.allSettled(result.bookingIds.map((id) => markBookingFailed(id)));
     }
   } catch (err) {
     console.error("[webhook] handle", err);

@@ -67,10 +67,15 @@ export const stripeProvider: PaymentProvider = {
     if (event.type === "checkout.session.completed") {
       const s = event.data.object as Stripe.Checkout.Session;
       const bookingId = s.client_reference_id ?? s.metadata?.bookingId ?? "";
+      const bookingIds = (s.metadata?.bookingIds ?? bookingId)
+        .split(",")
+        .map((id) => id.trim())
+        .filter(Boolean);
       if (s.payment_status === "paid") {
         return {
           type: "payment_succeeded",
           bookingId,
+          bookingIds,
           reference: typeof s.payment_intent === "string" ? s.payment_intent : s.id,
           amount: s.amount_total ?? 0,
         };
@@ -82,11 +87,12 @@ export const stripeProvider: PaymentProvider = {
       event.type === "checkout.session.async_payment_failed"
     ) {
       const s = event.data.object as Stripe.Checkout.Session;
-      return {
-        type: "payment_failed",
-        bookingId: s.client_reference_id ?? s.metadata?.bookingId ?? "",
-        reference: s.id,
-      };
+      const bookingId = s.client_reference_id ?? s.metadata?.bookingId ?? "";
+      const bookingIds = (s.metadata?.bookingIds ?? bookingId)
+        .split(",")
+        .map((id) => id.trim())
+        .filter(Boolean);
+      return { type: "payment_failed", bookingId, bookingIds, reference: s.id };
     }
 
     return { type: "ignored" };

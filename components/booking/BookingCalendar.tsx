@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { site } from "@/lib/site";
 import { addDays, localDateString } from "@/lib/booking";
+import type { StudioSlug } from "@/lib/studios";
 
 const DOW = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
 const MONTHS = [
@@ -12,24 +13,43 @@ const MONTHS = [
   "July", "August", "September", "October", "November", "December",
 ];
 
+type DayStatus = "busy" | "full";
+
 export function BookingCalendar({
-  value,
-  onChange,
+  studio,
+  values,
+  onToggle,
 }: {
-  value: string | null;
-  onChange: (date: string) => void;
+  studio: StudioSlug;
+  /** One or more selected dates (YYYY-MM-DD) — pick as many days as you like. */
+  values: string[];
+  onToggle: (date: string) => void;
 }) {
   const today = useMemo(() => {
     const d = new Date();
     d.setHours(0, 0, 0, 0);
     return d;
   }, []);
-  const maxDate = useMemo(
-    () => addDays(today, site.booking.maxAdvanceDays),
-    [today],
-  );
+  const maxDate = useMemo(() => addDays(today, site.booking.maxAdvanceDays), [today]);
 
   const [view, setView] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1));
+  const [monthStatus, setMonthStatus] = useState<Record<string, DayStatus>>({});
+
+  useEffect(() => {
+    const ctrl = new AbortController();
+    const params = new URLSearchParams({
+      studio,
+      year: String(view.getFullYear()),
+      month: String(view.getMonth() + 1),
+    });
+    fetch(`/api/availability/month?${params}`, { signal: ctrl.signal })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: { status?: Record<string, DayStatus> } | null) => {
+        setMonthStatus(data?.status ?? {});
+      })
+      .catch(() => setMonthStatus({}));
+    return () => ctrl.abort();
+  }, [studio, view]);
 
   const grid = useMemo(() => {
     const first = new Date(view.getFullYear(), view.getMonth(), 1);
@@ -87,25 +107,41 @@ export function BookingCalendar({
         {grid.map((date, i) => {
           if (!date) return <span key={`e${i}`} />;
           const iso = localDateString(date);
-          const disabled = date < today || date > maxDate;
-          const selected = iso === value;
+          const status = monthStatus[iso];
+          const full = status === "full";
+          const disabled = date < today || date > maxDate || full;
+          const selected = values.includes(iso);
           return (
             <button
               key={iso}
               type="button"
               disabled={disabled}
-              onClick={() => onChange(iso)}
+              onClick={() => onToggle(iso)}
+              title={full ? "Fully booked" : status === "busy" ? "Some hours already booked" : undefined}
               className={cn(
-                "aspect-square text-sm transition-colors",
+                "relative aspect-square text-sm transition-colors",
                 disabled && "text-ink-faint/50",
+                full && "line-through",
                 !disabled && !selected && "hover:bg-paper-deep",
                 selected && "bg-ink text-paper",
               )}
             >
               {date.getDate()}
+              {status === "busy" && !selected && (
+                <span className="absolute bottom-1 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-red-600/80" />
+              )}
             </button>
           );
         })}
+      </div>
+
+      <div className="mt-4 flex items-center gap-4 text-xs text-ink-faint">
+        <span className="flex items-center gap-1.5">
+          <span className="h-1.5 w-1.5 rounded-full bg-red-600/80" /> Some hours taken
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="h-2 w-2 border border-ink-faint/60 line-through" /> Fully booked
+        </span>
       </div>
     </div>
   );

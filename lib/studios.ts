@@ -84,8 +84,11 @@ export const studios: Studio[] = [
     capacity: "Up to 00 people",
     pricePerHour: 25,
     weekendPricePerHour: 30,
+    // Duration selection is paused for now (every booking is 1 hour) — both
+    // set to 1 so that's always satisfiable. Restore real minimums when the
+    // "how long" step comes back.
     minHours: 1,
-    weekendMinHours: 2,
+    weekendMinHours: 1,
     equipment: [
       "Continuous LED panels (placeholder)",
       "Seamless paper backdrops — white / grey / black",
@@ -112,8 +115,9 @@ export const studios: Studio[] = [
     capacity: "Up to 00 people",
     pricePerHour: 30,
     weekendPricePerHour: 35,
-    minHours: 2,
-    weekendMinHours: 3,
+    // See the note on Studio 01 — paused while duration selection is off.
+    minHours: 1,
+    weekendMinHours: 1,
     equipment: [
       "Strobe kit with softboxes (placeholder)",
       "RGB & tungsten fixtures",
