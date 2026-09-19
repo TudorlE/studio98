@@ -20,20 +20,20 @@ export type BookingConfirmationEmail = {
 };
 
 export async function sendBookingConfirmation(data: BookingConfirmationEmail): Promise<void> {
-  const subject = `Booking confirmed — ${data.studioName} · ${data.date}`;
+  const subject = `Rezervare confirmată — ${data.studioName} · ${data.date}`;
   const text = [
-    `Your booking at ${site.name} is confirmed.`,
+    `Rezervarea ta la ${site.name} este confirmată.`,
     ``,
-    `Booking ID:  ${data.bookingId}`,
-    `Studio:      ${data.studioName}`,
-    `Date:        ${data.date}`,
-    `Time:        ${data.startTime}–${data.endTime} (${data.durationHours}h)`,
-    ...(data.addOns && data.addOns.length ? [`Extras:      ${data.addOns.join(", ")}`] : []),
-    `Paid:        ${data.totalPaid}`,
-    ...(data.balanceDue ? [`Due at studio: ${data.balanceDue}`] : []),
+    `Cod rezervare: ${data.bookingId}`,
+    `Studio:        ${data.studioName}`,
+    `Data:          ${data.date}`,
+    `Ora:           ${data.startTime}–${data.endTime} (${data.durationHours}h)`,
+    ...(data.addOns && data.addOns.length ? [`Extra:         ${data.addOns.join(", ")}`] : []),
+    `Achitat:       ${data.totalPaid}`,
+    ...(data.balanceDue ? [`De achitat la studio: ${data.balanceDue}`] : []),
     ``,
-    `Address: ${site.contact.address.line1}, ${site.contact.address.line2}`,
-    `Questions? ${site.contact.email}`,
+    `Adresă: ${site.contact.address.line1}, ${site.contact.address.line2}`,
+    `Întrebări? ${site.contact.email}`,
   ].join("\n");
 
   const apiKey = process.env.RESEND_API_KEY;

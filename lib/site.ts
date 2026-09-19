@@ -27,7 +27,7 @@ export const site = {
     // Real location — pinned by coordinates so the embed and directions match exactly.
     mapsQuery: "31 August 1989 St 98, MD-2004, Chișinău, Moldova",
     mapsEmbedSrc:
-      "https://www.google.com/maps?q=47.028892,28.8209084&output=embed",
+      "https://www.google.com/maps?q=47.028892,28.8209084&output=embed&hl=ro",
     mapsDirectionsUrl:
       "https://www.google.com/maps/dir/?api=1&destination=47.028892,28.8209084",
   },

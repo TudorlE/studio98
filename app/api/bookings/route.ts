@@ -24,13 +24,13 @@ export async function POST(req: NextRequest) {
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    return NextResponse.json({ error: "JSON invalid" }, { status: 400 });
   }
 
   const parsed = createBookingSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
-      { error: "Please check the form.", issues: parsed.error.issues },
+      { error: "Te rugăm verifică formularul.", issues: parsed.error.issues },
       { status: 400 },
     );
   }
@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       {
         error:
-          "Booking backend is not configured yet. Add Supabase credentials to enable real reservations.",
+          "Sistemul de rezervări nu este configurat încă. Adaugă datele Supabase pentru a activa rezervările reale.",
         demo: true,
       },
       { status: 503 },
@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: `${date}: ${err.message}` }, { status: 422 });
       }
       console.error("[bookings] createHold", err);
-      return NextResponse.json({ error: "Could not create booking" }, { status: 500 });
+      return NextResponse.json({ error: "Rezervarea nu a putut fi creată" }, { status: 500 });
     }
   }
 
@@ -119,7 +119,7 @@ export async function POST(req: NextRequest) {
     } catch (err) {
       console.error("[bookings] checkout", err);
       await Promise.allSettled(bookingIds.map((id) => markBookingFailed(id)));
-      return NextResponse.json({ error: "Could not start payment" }, { status: 502 });
+      return NextResponse.json({ error: "Plata nu a putut fi inițiată" }, { status: 502 });
     }
   }
 

@@ -48,7 +48,7 @@ export function BookingForm({
     >
       <div>
         <label htmlFor="bf-name" className="eyebrow">
-          Your name
+          Numele tău
         </label>
         <input
           id="bf-name"
@@ -56,7 +56,7 @@ export function BookingForm({
           value={values.name}
           onChange={(e) => onChange({ ...values, name: e.target.value })}
           autoComplete="name"
-          placeholder="Jane Doe"
+          placeholder="Ana Popescu"
           required
           minLength={2}
         />
@@ -65,7 +65,7 @@ export function BookingForm({
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label htmlFor="bf-phone" className="eyebrow">
-            Phone
+            Telefon
           </label>
           <input
             id="bf-phone"
@@ -90,14 +90,14 @@ export function BookingForm({
             value={values.email}
             onChange={(e) => onChange({ ...values, email: e.target.value })}
             autoComplete="email"
-            placeholder="you@email.com"
+            placeholder="tu@email.com"
             required
           />
         </div>
       </div>
 
       <div className="pt-2">
-        <p className="eyebrow">House rules</p>
+        <p className="eyebrow">Regulile casei</p>
         <div
           ref={rulesRef}
           onScroll={checkScrolled}
@@ -111,7 +111,7 @@ export function BookingForm({
         </div>
         {!hasReadRules && (
           <p className="mt-1.5 text-xs text-ink-faint">
-            Scroll to the end of the house rules to continue.
+            Derulează până la final ca să poți continua.
           </p>
         )}
       </div>
@@ -129,7 +129,7 @@ export function BookingForm({
           disabled={!hasReadRules}
           onChange={(e) => onTermsChange(e.target.checked)}
         />
-        <span>I&apos;ve read and agree to the house rules.</span>
+        <span>Am citit și sunt de acord cu regulile casei.</span>
       </label>
 
       {error && (
@@ -140,7 +140,7 @@ export function BookingForm({
 
       {/* Submitted from the sticky button below — Enter key still works. */}
       <button type="submit" className="sr-only">
-        Book
+        Rezervă
       </button>
     </form>
   );

@@ -12,7 +12,7 @@ import {
 import type { BookingRow, BookingAddOn } from "@/lib/supabase/types";
 
 export class BookingConflictError extends Error {
-  constructor(msg = "That time is no longer available.") {
+  constructor(msg = "Acest interval orar nu mai este disponibil.") {
     super(msg);
     this.name = "BookingConflictError";
   }
@@ -133,13 +133,13 @@ export async function createHold(input: CreateHoldInput): Promise<HoldResult> {
   const endTime = endTimeFor(input.startTime, input.durationHours);
 
   if (input.date < localDateString(new Date())) {
-    throw new BookingConflictError("That date is in the past.");
+    throw new BookingConflictError("Această dată a trecut.");
   }
 
   const minHours = minHoursForDate(input.slug, input.date);
   if (input.durationHours < minHours) {
     throw new BookingRequestError(
-      `This date needs a minimum booking of ${minHours} hour${minHours > 1 ? "s" : ""}.`,
+      `Această dată necesită o rezervare minimă de ${minHours} ${minHours > 1 ? "ore" : "oră"}.`,
     );
   }
 

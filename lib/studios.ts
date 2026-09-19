@@ -148,5 +148,10 @@ export type StudioSlug = (typeof studios)[number]["slug"];
  * than other letter pairs at the same value.
  */
 export function subtitleWordSpacing(slug: StudioSlug): string {
-  return slug === "studio-01" ? "-0.6em" : "0.15em";
+  // "studio-01" previously used a large negative value to pull "Production"
+  // and "Studio" together when they wrapped onto two lines on wide tiles —
+  // but on narrow (mobile) tiles the words stay on one line, where that same
+  // value made the letters overlap. Normal spacing is safe at every width;
+  // the tight vertical gap between wrapped lines is handled by line-height.
+  return slug === "studio-01" ? "normal" : "0.15em";
 }

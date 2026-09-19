@@ -37,7 +37,7 @@ export function Directions() {
           </a>
         </div>
 
-        <div className="relative mx-auto mt-10 aspect-[58/21] w-full max-w-[58rem] overflow-hidden border border-line bg-paper-deep">
+        <div className="relative mx-auto mt-10 aspect-[4/3] w-full max-w-[58rem] overflow-hidden border border-line bg-paper-deep sm:aspect-[58/21]">
           <iframe
             title="Studio 98 location map"
             src={contact.mapsEmbedSrc}

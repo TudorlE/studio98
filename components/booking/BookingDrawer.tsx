@@ -24,10 +24,10 @@ import { useBookingDrawer } from "./BookingDrawerContext";
 const ease = [0.22, 1, 0.36, 1] as const;
 const emptyCustomer: CustomerFields = { name: "", email: "", phone: "" };
 
-const DOW = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const DOW = ["Du", "Lu", "Ma", "Mi", "Jo", "Vi", "Sâ"];
 const MONTHS = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
+  "Ianuarie", "Februarie", "Martie", "Aprilie", "Mai", "Iunie",
+  "Iulie", "August", "Septembrie", "Octombrie", "Noiembrie", "Decembrie",
 ];
 
 type Step = 1 | 2 | 3;
@@ -143,7 +143,7 @@ export function BookingDrawer() {
         );
       } catch (err) {
         if ((err as Error).name === "AbortError") return;
-        setAvailabilityError("Couldn't load times. Please try again.");
+        setAvailabilityError("Nu am putut încărca orele disponibile. Încearcă din nou.");
         setStatuses(null);
       }
     },
@@ -240,15 +240,15 @@ export function BookingDrawer() {
         return;
       }
       if (res.status === 409) {
-        setSubmitError(data.error ?? "One of those times was just taken.");
+        setSubmitError(data.error ?? "Unul dintre intervalele alese tocmai a fost rezervat.");
         setTimes([]);
         setStep(2);
         setReloadKey((k) => k + 1);
         return;
       }
-      setSubmitError(data.error ?? "Something went wrong. Please try again.");
+      setSubmitError(data.error ?? "A apărut o eroare. Încearcă din nou.");
     } catch {
-      setSubmitError("No connection. Please try again.");
+      setSubmitError("Nicio conexiune. Încearcă din nou.");
     } finally {
       setSubmitting(false);
     }
@@ -268,10 +268,10 @@ export function BookingDrawer() {
   }, [step, canSubmit, submitting, submit]);
 
   const buttonLabel = (() => {
-    if (submitting) return "Booking…";
-    if (!breakdown) return "Book a studio";
-    if (breakdown.depositPercent < 100) return `Pay ${formatMoney(breakdown.dueNow)} now`;
-    return `Pay ${formatMoney(breakdown.total)} & book`;
+    if (submitting) return "Se rezervă…";
+    if (!breakdown) return "Rezervă un studio";
+    if (breakdown.depositPercent < 100) return `Plătește ${formatMoney(breakdown.dueNow)} acum`;
+    return `Plătește ${formatMoney(breakdown.total)} și rezervă`;
   })();
 
   const timeSummary =
@@ -282,9 +282,9 @@ export function BookingDrawer() {
         : `${times[0]}–${endTimeFor(times[times.length - 1], 1)}`;
 
   const stepTitle: Record<Step, string> = {
-    1: "Choose a studio",
-    2: "Day & time",
-    3: "Your details",
+    1: "Alege un studio",
+    2: "Zi și oră",
+    3: "Datele tale",
   };
 
   const monthDays = useMemo(() => {
@@ -304,7 +304,7 @@ export function BookingDrawer() {
         <>
           <motion.button
             type="button"
-            aria-label="Close"
+            aria-label="Închide"
             className="fixed inset-0 z-[80] bg-black/45"
             onClick={closeBooking}
             initial={{ opacity: 0 }}
@@ -315,7 +315,7 @@ export function BookingDrawer() {
           <motion.aside
             role="dialog"
             aria-modal="true"
-            aria-label="Book a studio"
+            aria-label="Rezervă un studio"
             className="fixed inset-0 z-[90] flex w-full flex-col bg-paper font-sans sm:inset-y-0 sm:right-0 sm:left-auto sm:w-[85vw] sm:max-w-[560px] lg:w-[55vw] lg:max-w-[760px]"
             initial={{ x: "100%" }}
             animate={{ x: 0 }}
@@ -327,17 +327,17 @@ export function BookingDrawer() {
                 {step > 1 && (
                   <button
                     onClick={goBack}
-                    aria-label="Back"
+                    aria-label="Înapoi"
                     className="grid h-9 w-9 place-items-center text-ink-soft hover:text-ink"
                   >
                     <ChevronLeft size={20} strokeWidth={1.5} />
                   </button>
                 )}
-                <p className="font-serif text-xl tracking-tight">Book a studio</p>
+                <p className="font-serif text-xl tracking-tight">Rezervă un studio</p>
               </div>
               <button
                 onClick={closeBooking}
-                aria-label="Close"
+                aria-label="Închide"
                 className="grid h-10 w-10 place-items-center text-ink-soft hover:text-ink"
               >
                 <X size={22} strokeWidth={1.5} />
@@ -347,14 +347,14 @@ export function BookingDrawer() {
             {/* Where you are + what you've picked so far — always visible, no scrolling needed. */}
             <div className="flex items-center gap-2 border-b border-line px-6 py-3 text-xs text-ink-faint sm:px-8">
               <span className="font-medium text-ink">
-                Step {step} of 3 — {stepTitle[step]}
+                Pasul {step} din 3 — {stepTitle[step]}
               </span>
               {(studioData || dates.length > 0 || timeSummary) && (
                 <span className="truncate">
                   ·{" "}
                   {[
                     studioData?.subtitle,
-                    dates.length > 0 && `${dates.length} day${dates.length > 1 ? "s" : ""}`,
+                    dates.length > 0 && `${dates.length} ${dates.length > 1 ? "zile" : "zi"}`,
                     timeSummary,
                   ]
                     .filter(Boolean)
@@ -390,7 +390,7 @@ export function BookingDrawer() {
                           {s.subtitle}
                         </span>
                         <span className="mt-1 block text-sm text-ink-soft">
-                          {formatMoney(s.pricePerHour)}–{formatMoney(s.weekendPricePerHour)} / hour
+                          {formatMoney(s.pricePerHour)}–{formatMoney(s.weekendPricePerHour)} / oră
                         </span>
                       </span>
                     </button>
@@ -406,7 +406,7 @@ export function BookingDrawer() {
                       type="button"
                       onClick={() => shiftMonth(-1)}
                       disabled={!canPrevMonth}
-                      aria-label="Previous month"
+                      aria-label="Luna anterioară"
                       className="grid h-8 w-8 shrink-0 place-items-center text-neutral-400 disabled:opacity-20 enabled:hover:text-neutral-700"
                     >
                       <ChevronLeft size={18} />
@@ -436,7 +436,7 @@ export function BookingDrawer() {
                       type="button"
                       onClick={() => shiftMonth(1)}
                       disabled={!canNextMonth}
-                      aria-label="Next month"
+                      aria-label="Luna următoare"
                       className="grid h-8 w-8 shrink-0 place-items-center text-neutral-400 disabled:opacity-20 enabled:hover:text-neutral-700"
                     >
                       <ChevronRight size={18} />
@@ -488,7 +488,7 @@ export function BookingDrawer() {
                   {/* One section per selected day, each with its own hourly grid */}
                   {dates.length === 0 && (
                     <p className="mt-8 text-sm text-neutral-500">
-                      Pick one day, or several — the same hour books across all of them.
+                      Alege o zi, sau mai multe — aceeași oră se rezervă pe toate.
                     </p>
                   )}
 
@@ -503,7 +503,7 @@ export function BookingDrawer() {
                         <div key={d} className="mt-9">
                           <div className="flex items-baseline justify-between border-b border-neutral-200 pb-2">
                             <p className="text-sm font-medium text-neutral-800">
-                              {DOW[dateObj.getDay()]}, {MONTHS[dateObj.getMonth()]} {dateObj.getDate()},{" "}
+                              {DOW[dateObj.getDay()]}, {dateObj.getDate()} {MONTHS[dateObj.getMonth()]}{" "}
                               {dateObj.getFullYear()}
                             </p>
                             <p className="text-xs text-neutral-400">{tzLabel}</p>
@@ -535,7 +535,7 @@ export function BookingDrawer() {
                                         {t} — {endTimeFor(t, 1)}
                                       </span>
                                       <span className={cn("text-xs", selected ? "text-white/80" : "text-neutral-400")}>
-                                        {selectable ? `from ${formatMoney(dayRate)}` : "—"}
+                                        {selectable ? `de la ${formatMoney(dayRate)}` : "—"}
                                       </span>
                                     </button>
                                   );
@@ -562,7 +562,7 @@ export function BookingDrawer() {
             <div className="border-t border-line bg-paper px-6 py-5 sm:px-8">
               {breakdown && breakdown.depositPercent < 100 && breakdown.dueAtStudio > 0 && (
                 <p className="mb-2 text-xs text-ink-faint">
-                  + {formatMoney(breakdown.dueAtStudio)} at the studio
+                  + {formatMoney(breakdown.dueAtStudio)} la studio
                 </p>
               )}
               {step === 3 && (
@@ -583,22 +583,22 @@ export function BookingDrawer() {
                   className="flex h-14 w-full items-center justify-center rounded-full bg-blue-600 text-[0.75rem] font-medium uppercase tracking-[0.18em] text-white transition-colors hover:bg-blue-700 disabled:opacity-30"
                 >
                   {dates.length === 0
-                    ? "Pick a day"
+                    ? "Alege o zi"
                     : times.length === 0
-                      ? "Pick a time"
-                      : `Continue with ${timeSummary}`}
+                      ? "Alege o oră"
+                      : `Continuă cu ${timeSummary}`}
                 </button>
               )}
               {(step === 1 || step === 2) && breakdown && (
                 <div className="mt-3 flex items-baseline justify-between text-sm">
-                  <span className="text-ink-faint">Total so far</span>
+                  <span className="text-ink-faint">Total până acum</span>
                   <span className="font-serif text-2xl tracking-tight">
                     {formatMoney(breakdown.total)}
                   </span>
                 </div>
               )}
               <p className="mt-3 text-center text-xs text-ink-faint">
-                Payment is safe. We never see your card.
+                Plata este sigură. Nu vedem niciodată datele cardului tău.
               </p>
             </div>
           </motion.aside>

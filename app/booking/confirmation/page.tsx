@@ -10,7 +10,7 @@ import { getBooking, studioName } from "@/lib/server/bookings";
 import { studios } from "@/lib/studios";
 
 export const metadata: Metadata = {
-  title: "Booking confirmed",
+  title: "Rezervare confirmată",
   robots: { index: false, follow: false },
 };
 
@@ -75,32 +75,32 @@ export default async function ConfirmationPage({
             <Check size={20} strokeWidth={1.5} />
           </div>
           <h1 className="headline mt-8 text-5xl leading-none tracking-tight sm:text-6xl">
-            Booking confirmed.
+            Rezervare confirmată.
           </h1>
           <p className="mt-5 max-w-prose text-ink-soft">
             {details && !details.settled
-              ? "We've received your booking. Payment is still pending — check your email for next steps."
-              : "A confirmation email is on its way. Please arrive a few minutes early."}
+              ? "Am primit rezervarea ta. Plata este încă în așteptare — verifică emailul pentru pașii următori."
+              : "Un email de confirmare este pe drum. Te rugăm să ajungi cu câteva minute mai devreme."}
           </p>
 
           <dl className="mt-12 divide-y divide-line border-y border-line text-sm">
-            <Line label="Booking ID" value={bookingIds[0] ?? "—"} mono />
+            <Line label="Cod rezervare" value={bookingIds[0] ?? "—"} mono />
             {details && (
               <>
                 <Line label="Studio" value={details.studio} />
                 <Line
-                  label={details.dates.length > 1 ? "Dates" : "Date"}
+                  label={details.dates.length > 1 ? "Date" : "Data"}
                   value={details.dates.join(", ")}
                 />
-                <Line label="Time" value={details.time} />
-                <Line label={details.balance ? "Paid" : "Total paid"} value={details.paid} />
-                {details.balance && <Line label="Due at studio" value={details.balance} />}
+                <Line label="Ora" value={details.time} />
+                <Line label={details.balance ? "Achitat" : "Total achitat"} value={details.paid} />
+                {details.balance && <Line label="De achitat la studio" value={details.balance} />}
               </>
             )}
             {!details && (
               <Line
                 label="Status"
-                value="Confirmed — full details were sent to your email."
+                value="Confirmată — toate detaliile au fost trimise pe email."
               />
             )}
           </dl>
@@ -110,7 +110,7 @@ export default async function ConfirmationPage({
               href="/"
               className="inline-flex h-12 items-center border border-ink/25 px-8 text-[0.7rem] font-medium uppercase tracking-[0.18em] transition-colors hover:bg-ink hover:text-paper"
             >
-              Back to home
+              Înapoi acasă
             </Link>
             <a
               href={site.contact.mapsDirectionsUrl}
@@ -118,7 +118,7 @@ export default async function ConfirmationPage({
               rel="noopener noreferrer"
               className="inline-flex h-12 items-center bg-ink px-8 text-[0.7rem] font-medium uppercase tracking-[0.18em] text-paper transition-colors hover:bg-ink-soft"
             >
-              Get directions
+              Indicații rutiere
             </a>
           </div>
         </Container>

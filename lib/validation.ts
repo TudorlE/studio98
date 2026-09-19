@@ -5,8 +5,8 @@ import { site } from "@/lib/site";
 const addOnIds = studioAddOns.map((a) => a.id);
 
 const slugEnum = z.enum(studioSlugs as [string, ...string[]]);
-const dateStr = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date");
-const timeStr = z.string().regex(/^\d{2}:\d{2}$/, "Invalid time");
+const dateStr = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Dată invalidă");
+const timeStr = z.string().regex(/^\d{2}:\d{2}$/, "Oră invalidă");
 
 export const availabilityQuerySchema = z.object({
   studio: slugEnum,
@@ -28,7 +28,7 @@ export const createBookingSchema = z.object({
     .number()
     .int()
     .refine((n) => (site.booking.durations as readonly number[]).includes(n), {
-      message: "Unsupported duration",
+      message: "Durată nesuportată",
     }),
   addOnIds: z
     .array(z.enum(addOnIds as [string, ...string[]]))
@@ -41,7 +41,7 @@ export const createBookingSchema = z.object({
     phone: z.string().min(6).max(40),
   }),
   termsAccepted: z.literal(true, {
-    message: "You must accept the booking terms.",
+    message: "Trebuie să accepți regulile rezervării.",
   }),
 });
 
