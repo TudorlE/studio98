@@ -1,22 +1,14 @@
 import type { Metadata, Viewport } from "next";
-import { Cormorant_Garamond, Inter } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import { site } from "@/lib/site";
 import { BookingDrawerProvider } from "@/components/booking/BookingDrawerContext";
 import { BookingDrawer } from "@/components/booking/BookingDrawer";
 import { StudioDetailsProvider } from "@/components/sections/StudioDetailsContext";
-import { LoadingProvider } from "@/components/loading/LoadingProvider";
 
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
-  display: "swap",
-});
-
-const cormorant = Cormorant_Garamond({
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
-  variable: "--font-cormorant",
   display: "swap",
 });
 
@@ -28,10 +20,10 @@ export const metadata: Metadata = {
   },
   description: site.description,
   keywords: [
-    "photo studio rental",
-    "video studio",
-    "creative space",
-    "studio hire",
+    "închiriere studio foto",
+    "studio video",
+    "spațiu creativ",
+    "închiriere studio",
     "Chișinău",
     "Moldova",
   ],
@@ -58,16 +50,14 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${inter.variable} ${cormorant.variable} h-full`}>
+    <html lang="ro" className={`${inter.variable} h-full`}>
       <body className="min-h-full flex flex-col">
-        <LoadingProvider>
-          <StudioDetailsProvider>
-            <BookingDrawerProvider>
-              {children}
-              <BookingDrawer />
-            </BookingDrawerProvider>
-          </StudioDetailsProvider>
-        </LoadingProvider>
+        <StudioDetailsProvider>
+          <BookingDrawerProvider>
+            {children}
+            <BookingDrawer />
+          </BookingDrawerProvider>
+        </StudioDetailsProvider>
       </body>
     </html>
   );

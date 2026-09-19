@@ -1,7 +1,8 @@
 "use client";
 
-import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
+import { houseRules } from "@/lib/rules";
 
 export type CustomerFields = { name: string; email: string; phone: string };
 
@@ -23,6 +24,20 @@ export function BookingForm({
   onSubmit: () => void;
   error: string | null;
 }) {
+  const rulesRef = useRef<HTMLDivElement>(null);
+  const [hasReadRules, setHasReadRules] = useState(false);
+
+  const checkScrolled = () => {
+    const el = rulesRef.current;
+    if (!el) return;
+    // Also passes if the whole thing already fits with no scrolling needed.
+    if (el.scrollTop + el.clientHeight >= el.scrollHeight - 8) setHasReadRules(true);
+  };
+
+  useEffect(() => {
+    checkScrolled();
+  }, []);
+
   return (
     <form
       className="space-y-4"
@@ -81,20 +96,40 @@ export function BookingForm({
         </div>
       </div>
 
-      <label className="flex cursor-pointer items-start gap-3 pt-2 text-sm text-ink-soft">
+      <div className="pt-2">
+        <p className="eyebrow">House rules</p>
+        <div
+          ref={rulesRef}
+          onScroll={checkScrolled}
+          className="mt-2 max-h-48 overflow-y-auto border border-line p-4 text-sm text-ink-soft"
+        >
+          <div className="space-y-2.5">
+            {houseRules.map((rule) => (
+              <p key={rule}>{rule}</p>
+            ))}
+          </div>
+        </div>
+        {!hasReadRules && (
+          <p className="mt-1.5 text-xs text-ink-faint">
+            Scroll to the end of the house rules to continue.
+          </p>
+        )}
+      </div>
+
+      <label
+        className={cn(
+          "flex items-start gap-3 pt-1 text-sm text-ink-soft",
+          hasReadRules ? "cursor-pointer" : "cursor-not-allowed opacity-50",
+        )}
+      >
         <input
           type="checkbox"
           className="mt-0.5 h-4 w-4 accent-ink"
           checked={terms}
+          disabled={!hasReadRules}
           onChange={(e) => onTermsChange(e.target.checked)}
         />
-        <span>
-          I agree to the{" "}
-          <Link href="/legal/terms" target="_blank" className="underline hover:text-ink">
-            booking rules
-          </Link>
-          .
-        </span>
+        <span>I&apos;ve read and agree to the house rules.</span>
       </label>
 
       {error && (

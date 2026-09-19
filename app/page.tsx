@@ -2,7 +2,6 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { Hero } from "@/components/sections/Hero";
 import { Directions } from "@/components/sections/Directions";
-import { Rules } from "@/components/sections/Rules";
 import { site } from "@/lib/site";
 
 const jsonLd = {
@@ -31,7 +30,6 @@ export default function Home() {
       <Header />
       <main className="flex-1">
         <Hero />
-        <Rules />
         <Directions />
       </main>
       <Footer />

@@ -4,9 +4,9 @@ import { Logo } from "@/components/ui/Logo";
 import { site } from "@/lib/site";
 
 const legal = [
-  { label: "Terms", href: "/legal/terms" },
-  { label: "Privacy", href: "/legal/privacy" },
-  { label: "Cancellation", href: "/legal/cancellation" },
+  { label: "Termeni", href: "/legal/terms" },
+  { label: "Confidențialitate", href: "/legal/privacy" },
+  { label: "Anulare", href: "/legal/cancellation" },
 ];
 
 export function Footer() {

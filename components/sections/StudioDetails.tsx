@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import { X } from "lucide-react";
 import { BookStudioButton } from "@/components/booking/BookStudioButton";
 import { formatMoney } from "@/lib/booking";
-import { studios } from "@/lib/studios";
+import { studios, subtitleWordSpacing } from "@/lib/studios";
 import { useStudioDetails } from "./StudioDetailsContext";
 
 /**
@@ -50,7 +50,7 @@ export function StudioDetails() {
       className="fixed inset-0 z-[70] overflow-hidden bg-night"
       role="dialog"
       aria-modal="true"
-      aria-label={`${studio.subtitle} — photos and details`}
+      aria-label={`${studio.subtitle} — fotografii și detalii`}
     >
       <div className="absolute inset-0">
         {/* Swipeable directly — drag the photo itself, not a separate gallery. */}
@@ -88,7 +88,7 @@ export function StudioDetails() {
           type="button"
           onClick={closeDetails}
           className="flex h-11 w-11 items-center justify-center border border-paper/40 text-paper transition-colors hover:bg-paper hover:text-ink"
-          aria-label="Close"
+          aria-label="Închide"
         >
           <X size={20} strokeWidth={1.5} />
         </button>
@@ -99,18 +99,21 @@ export function StudioDetails() {
           Studio {studio.index}
         </p>
 
-        <h2 className="display mt-4 max-w-[15ch] text-[13vw] leading-[0.95] sm:text-[7vw] lg:text-[5.2vw]">
+        <h2
+          className="display mt-4 max-w-[15ch] text-[13vw] leading-[0.85] sm:text-[7vw] lg:text-[5.2vw]"
+          style={{ wordSpacing: subtitleWordSpacing(studio.slug) }}
+        >
           {studio.subtitle}
         </h2>
 
         <p className="mt-4 text-sm text-paper/85 sm:text-base">
-          {studio.description} From {formatMoney(studio.pricePerHour)} / hour.
+          {studio.description} De la {formatMoney(studio.pricePerHour)} / oră.
         </p>
 
         <div className="pointer-events-auto mt-8 inline-block">
           <BookStudioButton
             slug={studio.slug}
-            label={`Book Studio ${studio.index}`}
+            label={`Rezervă Studio ${studio.index}`}
             tone="paper"
             onClick={closeDetails}
           />

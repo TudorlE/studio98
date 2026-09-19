@@ -5,33 +5,41 @@ import { Container } from "@/components/ui/Container";
 import { Footer } from "@/components/layout/Footer";
 import { Logo } from "@/components/ui/Logo";
 import { site } from "@/lib/site";
+import { houseRules } from "@/lib/rules";
 
 const DOCS = {
   terms: {
-    title: "Terms & Conditions",
+    title: "Termeni și condiții",
     body: [
-      "PLACEHOLDER. Replace this document with the studio's real terms before launch.",
-      "Bookings are confirmed once payment is received. The booked hours include set-up and clear-down time.",
-      "The renter is responsible for any damage to the space or equipment during the booking.",
-      "Studio 98 is not liable for the renter's equipment, media or personal belongings.",
+      "PLACEHOLDER. Înlocuiește acest document cu termenii reali ai studioului înainte de lansare.",
+      "Rezervările sunt confirmate după primirea plății. Orele rezervate includ timpul de pregătire și de strângere a decorului.",
+      "Chiriașul este responsabil pentru orice daună adusă spațiului sau echipamentului în timpul rezervării.",
+      "Studio 98 nu răspunde pentru echipamentul, materialele sau obiectele personale ale chiriașului.",
     ],
   },
   privacy: {
-    title: "Privacy Policy",
+    title: "Politica de confidențialitate",
     body: [
-      "PLACEHOLDER. Replace with a real privacy policy reviewed by counsel.",
-      "We collect the name, email and phone number you provide to manage your booking and send confirmations.",
-      "Payment is processed by our payment provider. Card details never reach our servers and are not stored by us.",
-      "You can request deletion of your booking data by emailing " + site.contact.email + ".",
+      "PLACEHOLDER. Înlocuiește cu o politică de confidențialitate reală, verificată juridic.",
+      "Colectăm numele, emailul și numărul de telefon pe care le oferi pentru a gestiona rezervarea și a trimite confirmări.",
+      "Plata este procesată de furnizorul nostru de plăți. Datele cardului nu ajung niciodată pe serverele noastre și nu sunt stocate de noi.",
+      "Poți cere ștergerea datelor tale de rezervare trimițând un email la " + site.contact.email + ".",
     ],
   },
   cancellation: {
-    title: "Cancellation Policy",
+    title: "Politica de anulare",
     body: [
-      "PLACEHOLDER. Confirm the real policy with the studio owner.",
-      "Free cancellation up to 48 hours before the booking start time — full refund.",
-      "Cancellations within 48 hours are charged at 50% of the booking value.",
-      "No-shows are charged in full.",
+      "PLACEHOLDER. Confirmă politica reală împreună cu proprietarul studioului.",
+      "Anulare cu cel puțin 7 zile înainte de rezervare pentru rambursare integrală.",
+      "În acest interval de 7 zile, poți încă reprograma gratuit cu cel puțin 24 de ore înainte.",
+      "Schimbările făcute în ziua rezervării — inclusiv neprezentarea — nu se rambursează.",
+    ],
+  },
+  rules: {
+    title: "Regulile casei",
+    body: [
+      "PLACEHOLDER. Confirmă lista finală împreună cu proprietarul studioului înainte de lansare.",
+      ...houseRules,
     ],
   },
 } as const;
@@ -49,7 +57,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { doc } = await params;
   const entry = DOCS[doc as DocKey];
-  return { title: entry?.title ?? "Legal", robots: { index: false } };
+  return { title: entry?.title ?? "Informații legale", robots: { index: false } };
 }
 
 export default async function LegalPage({
@@ -72,7 +80,7 @@ export default async function LegalPage({
       </header>
       <main className="flex-1 py-24 sm:py-32">
         <Container className="max-w-2xl!">
-          <p className="eyebrow">Legal</p>
+          <p className="eyebrow">Informații legale</p>
           <h1 className="headline mt-6 text-5xl leading-none tracking-tight sm:text-6xl">
             {entry.title}
           </h1>
@@ -85,7 +93,7 @@ export default async function LegalPage({
             href="/"
             className="mt-12 inline-flex h-12 items-center border border-ink/25 px-8 text-[0.7rem] font-medium uppercase tracking-[0.18em] transition-colors hover:bg-ink hover:text-paper"
           >
-            Back to home
+            Înapoi acasă
           </Link>
         </Container>
       </main>

@@ -25,7 +25,7 @@ export default function OgImage() {
           {site.name}
         </div>
         <div style={{ fontSize: 96, lineHeight: 1, maxWidth: 900 }}>
-          Space for your next creation.
+          Spațiu pentru următoarea ta creație.
         </div>
         <div style={{ fontSize: 26, color: "#6f6f6a" }}>{site.tagline}</div>
       </div>

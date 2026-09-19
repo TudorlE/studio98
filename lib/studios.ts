@@ -78,8 +78,8 @@ export const studios: Studio[] = [
     slug: "studio-01",
     index: "01",
     name: "STUDIO 01",
-    subtitle: "THE LIGHT SPACE",
-    description: "A bright room, full of natural light.",
+    subtitle: "PRODUCTION STUDIO",
+    description: "O cameră luminoasă, plină de lumină naturală.",
     area: "00 m²",
     capacity: "Up to 00 people",
     pricePerHour: 25,
@@ -109,8 +109,8 @@ export const studios: Studio[] = [
     slug: "studio-02",
     index: "02",
     name: "STUDIO 02",
-    subtitle: "THE DARK SPACE",
-    description: "A dark room, made for dramatic light.",
+    subtitle: "THE APARTMENT",
+    description: "O cameră întunecată, creată pentru lumină dramatică.",
     area: "00 m²",
     capacity: "Up to 00 people",
     pricePerHour: 30,
@@ -140,3 +140,13 @@ export const getStudioBySlug = (slug: string) =>
 
 export const studioSlugs = studios.map((s) => s.slug);
 export type StudioSlug = (typeof studios)[number]["slug"];
+
+/**
+ * Manual per-studio kerning for the tight, negative word-spacing on the
+ * subtitle. The right amount differs per studio because it depends on which
+ * letters sit next to the word gap — e.g. "E" + "A" reads as touching sooner
+ * than other letter pairs at the same value.
+ */
+export function subtitleWordSpacing(slug: StudioSlug): string {
+  return slug === "studio-01" ? "-0.6em" : "0.15em";
+}

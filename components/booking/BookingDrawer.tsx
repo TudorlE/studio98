@@ -6,7 +6,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { site } from "@/lib/site";
-import { studios, type StudioSlug } from "@/lib/studios";
+import { studios, subtitleWordSpacing, type StudioSlug } from "@/lib/studios";
 import {
   addDays,
   endTimeFor,
@@ -254,6 +254,19 @@ export function BookingDrawer() {
     }
   }, [studio, dates, times, customer, canSubmit]);
 
+  // Checking the house-rules box is the final step — once everything else on
+  // the form is already valid, it goes straight to payment (no extra click).
+  const autoBookedRef = useRef(false);
+  useEffect(() => {
+    if (!canSubmit) {
+      autoBookedRef.current = false;
+      return;
+    }
+    if (step !== 3 || submitting || autoBookedRef.current) return;
+    autoBookedRef.current = true;
+    void submit();
+  }, [step, canSubmit, submitting, submit]);
+
   const buttonLabel = (() => {
     if (submitting) return "Booking…";
     if (!breakdown) return "Book a studio";
@@ -370,7 +383,12 @@ export function BookingDrawer() {
                         />
                       </span>
                       <span className="block bg-paper p-4">
-                        <span className="block font-serif text-lg tracking-tight">{s.subtitle}</span>
+                        <span
+                          className="block font-serif text-lg tracking-tight"
+                          style={{ wordSpacing: subtitleWordSpacing(s.slug) }}
+                        >
+                          {s.subtitle}
+                        </span>
                         <span className="mt-1 block text-sm text-ink-soft">
                           {formatMoney(s.pricePerHour)}–{formatMoney(s.weekendPricePerHour)} / hour
                         </span>
@@ -425,8 +443,19 @@ export function BookingDrawer() {
                     </button>
                   </div>
 
-                  {/* Horizontal day strip — tap to add/remove a day */}
-                  <div className="mt-6 -mx-6 flex gap-3 overflow-x-auto px-6 pb-2 sm:-mx-8 sm:px-8">
+                  {/* Full month calendar grid — tap a day to add/remove it */}
+                  <div className="mt-6 grid grid-cols-7 gap-y-1 text-center sm:gap-y-2">
+                    {DOW.map((d) => (
+                      <span
+                        key={d}
+                        className="pb-2 text-[0.65rem] font-medium uppercase tracking-wide text-neutral-400"
+                      >
+                        {d}
+                      </span>
+                    ))}
+                    {Array.from({ length: monthDays[0].getDay() }).map((_, i) => (
+                      <span key={`pad-${i}`} />
+                    ))}
                     {monthDays.map((date) => {
                       const iso = localDateString(date);
                       const status = monthStatus[iso];
@@ -439,21 +468,13 @@ export function BookingDrawer() {
                           type="button"
                           disabled={disabled}
                           onClick={() => toggleDate(iso)}
-                          className="flex shrink-0 flex-col items-center gap-1.5"
+                          className="flex items-center justify-center py-0.5"
                         >
                           <span
                             className={cn(
-                              "text-[0.65rem] font-medium uppercase tracking-wide",
-                              selected ? "text-blue-600" : "text-neutral-400",
-                            )}
-                          >
-                            {DOW[date.getDay()]}
-                          </span>
-                          <span
-                            className={cn(
-                              "grid h-11 w-11 place-items-center rounded-full text-sm font-medium transition-colors",
+                              "grid h-10 w-10 place-items-center rounded-full text-sm font-medium transition-colors sm:h-11 sm:w-11",
                               disabled && "text-neutral-300 line-through",
-                              !disabled && !selected && "bg-neutral-100 text-neutral-800 hover:bg-neutral-200",
+                              !disabled && !selected && "text-neutral-800 hover:bg-neutral-100",
                               selected && "bg-blue-600 text-white",
                             )}
                           >

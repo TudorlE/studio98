@@ -7,15 +7,16 @@ import { X } from "lucide-react";
 import { site } from "@/lib/site";
 import { studios } from "@/lib/studios";
 import { Logo } from "@/components/ui/Logo";
+import { Button } from "@/components/ui/Button";
 import { useBookingDrawer } from "@/components/booking/BookingDrawerContext";
 import { useStudioDetails } from "@/components/sections/StudioDetailsContext";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
 const legal = [
-  { label: "Terms", href: "/legal/terms" },
-  { label: "Privacy", href: "/legal/privacy" },
-  { label: "Cancellation", href: "/legal/cancellation" },
+  { label: "Termeni", href: "/legal/terms" },
+  { label: "Confidențialitate", href: "/legal/privacy" },
+  { label: "Anulare", href: "/legal/cancellation" },
 ];
 
 export function MobileMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -50,7 +51,7 @@ export function MobileMenu({ open, onClose }: { open: boolean; onClose: () => vo
         <>
           <motion.button
             type="button"
-            aria-label="Close menu"
+            aria-label="Închide meniul"
             className="fixed inset-0 z-[55] bg-black/45"
             onClick={onClose}
             initial={{ opacity: 0 }}
@@ -62,7 +63,7 @@ export function MobileMenu({ open, onClose }: { open: boolean; onClose: () => vo
             className="fixed inset-0 z-[60] flex w-full flex-col overflow-y-auto bg-paper sm:inset-y-0 sm:right-0 sm:left-auto sm:w-[420px] sm:max-w-[88vw]"
             role="dialog"
             aria-modal="true"
-            aria-label="Menu"
+            aria-label="Meniu"
             initial={{ x: "100%" }}
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
@@ -72,7 +73,7 @@ export function MobileMenu({ open, onClose }: { open: boolean; onClose: () => vo
               <Logo />
               <button
                 onClick={onClose}
-                aria-label="Close"
+                aria-label="Închide"
                 className="grid h-10 w-10 place-items-center text-ink-soft hover:text-ink"
               >
                 <X size={22} strokeWidth={1.5} />
@@ -80,15 +81,17 @@ export function MobileMenu({ open, onClose }: { open: boolean; onClose: () => vo
             </div>
 
             <div className="flex flex-1 flex-col justify-between px-5 py-8 sm:px-8">
-              <nav className="flex flex-col gap-1">
+              <nav className="flex flex-col gap-3">
                 {studios.map((s) => (
-                  <button
+                  <Button
                     key={s.slug}
+                    variant="solid"
+                    tone="accent"
+                    className="w-full"
                     onClick={seeStudio(s.slug)}
-                    className="block py-2 text-left font-serif text-4xl leading-tight tracking-tight sm:text-3xl"
                   >
                     {s.name}
-                  </button>
+                  </Button>
                 ))}
               </nav>
 
@@ -97,7 +100,7 @@ export function MobileMenu({ open, onClose }: { open: boolean; onClose: () => vo
                   onClick={bookNow}
                   className="flex h-14 w-full items-center justify-center bg-ink text-[0.72rem] font-medium uppercase tracking-[0.18em] text-paper"
                 >
-                  Book a studio
+                  Rezervă un studio
                 </button>
 
                 <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-[0.7rem] uppercase tracking-[0.14em] text-ink-faint">

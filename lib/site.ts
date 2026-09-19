@@ -10,9 +10,9 @@ export const site = {
   name: "STUDIO 98",
   legalName: "Studio 98 SRL",
   domain: process.env.NEXT_PUBLIC_SITE_URL || "https://studio98.example", // TODO: real domain
-  tagline: "Studios for Photography & Film",
+  tagline: "Studiouri pentru fotografie și film",
   description:
-    "Two studios in the centre of the city — for photography, film and events. Booked by the hour.",
+    "Două studiouri în centrul orașului — pentru fotografie, film și evenimente. Rezervare la oră.",
   contact: {
     // TODO: replace all contact details with real ones
     phone: "+373 00 000 000",
