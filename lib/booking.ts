@@ -239,6 +239,25 @@ export function endTimeFor(startTime: string, durationHours: number): string {
   return minutesToTime(timeToMinutes(startTime) + durationHours * 60);
 }
 
+/** When the client must be out: the booked end minus the turnover buffer ("10:55"). */
+export function sessionEndTime(startTime: string, durationHours: number): string {
+  return minutesToTime(
+    timeToMinutes(startTime) + durationHours * 60 - site.booking.bufferMinutes,
+  );
+}
+
+export type PaymentMethod = "online" | "onsite";
+
+/**
+ * What the client owes before the booking is confirmed when paying at the studio.
+ * Long on-site bookings need an advance via MIA; short ones need nothing up front.
+ */
+export function onsiteAdvance(hoursPerDay: number, total: number): number {
+  const { onsiteAdvanceAboveHours, onsiteAdvancePercent } = site.booking;
+  if (hoursPerDay <= onsiteAdvanceAboveHours) return 0;
+  return Math.round((total * onsiteAdvancePercent) / 100);
+}
+
 /** "Europe/Chișinău (GMT+2)" / "(GMT+3)" — the studio's own timezone, DST-aware. */
 export function studioTimezoneLabel(): string {
   try {

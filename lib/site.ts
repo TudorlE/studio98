@@ -53,6 +53,19 @@ export const site = {
     // Share of the total charged online now. 100 = pay in full.
     // Set e.g. 30 to take a 30% deposit and collect the balance at the studio.
     depositPercent: 100,
+    // Each booked hour is 55 minutes of work; the last 5 minutes of a booking
+    // are for packing up so the next client can walk in on time.
+    bufferMinutes: 5,
+    // Paying at the studio: bookings longer than this many hours on a single day
+    // must first send an advance of `onsiteAdvancePercent` via MIA.
+    onsiteAdvanceAboveHours: 2,
+    onsiteAdvancePercent: 50,
+    // MIA (Plăți Instant) transfer details shown to the client.
+    // TODO: replace with the studio's real MIA phone / alias and recipient.
+    mia: {
+      phone: "+373 00 000 000",
+      recipient: "Studio 98 SRL",
+    },
   },
 } as const;
 

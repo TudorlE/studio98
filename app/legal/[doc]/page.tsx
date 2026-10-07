@@ -29,18 +29,14 @@ const DOCS = {
   cancellation: {
     title: "Politica de anulare",
     body: [
-      "PLACEHOLDER. Confirmă politica reală împreună cu proprietarul studioului.",
-      "Anulare cu cel puțin 7 zile înainte de rezervare pentru rambursare integrală.",
-      "În acest interval de 7 zile, poți încă reprograma gratuit cu cel puțin 24 de ore înainte.",
-      "Schimbările făcute în ziua rezervării — inclusiv neprezentarea — nu se rambursează.",
+      "Pentru rezervările mai lungi de 2 ore, anularea sau schimbarea planurilor trebuie anunțată cu cel puțin 5 zile înainte — în acest caz, suma achitată se rambursează integral.",
+      "Dacă au rămas mai puțin de 5 zile, poți reprograma ședința gratuit, anunțându-ne cu cel puțin 24 de ore înainte.",
+      "Modificările și anulările făcute în ziua rezervării — inclusiv neprezentarea — nu se rambursează.",
     ],
   },
   rules: {
     title: "Regulile casei",
-    body: [
-      "PLACEHOLDER. Confirmă lista finală împreună cu proprietarul studioului înainte de lansare.",
-      ...houseRules,
-    ],
+    body: [],
   },
 } as const;
 
@@ -84,11 +80,25 @@ export default async function LegalPage({
           <h1 className="headline mt-6 text-5xl leading-none tracking-tight sm:text-6xl">
             {entry.title}
           </h1>
-          <div className="mt-10 space-y-5 leading-relaxed text-ink-soft">
-            {entry.body.map((p) => (
-              <p key={p}>{p}</p>
-            ))}
-          </div>
+          {doc === "rules" ? (
+            <ol className="mt-10 space-y-7 leading-relaxed text-ink-soft">
+              {houseRules.map((rule, i) => (
+                <li key={rule.title} className="flex gap-4">
+                  <span className="w-6 shrink-0 font-serif text-ink">{i + 1}.</span>
+                  <div>
+                    <p className="font-medium text-ink">{rule.title}</p>
+                    <p className="mt-1">{rule.body}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <div className="mt-10 space-y-5 leading-relaxed text-ink-soft">
+              {entry.body.map((p) => (
+                <p key={p}>{p}</p>
+              ))}
+            </div>
+          )}
           <Link
             href="/"
             className="mt-12 inline-flex h-12 items-center border border-ink/25 px-8 text-[0.7rem] font-medium uppercase tracking-[0.18em] transition-colors hover:bg-ink hover:text-paper"

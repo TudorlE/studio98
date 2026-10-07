@@ -40,6 +40,7 @@ export const createBookingSchema = z.object({
     email: z.string().email().max(180),
     phone: z.string().min(6).max(40),
   }),
+  paymentMethod: z.enum(["online", "onsite"]).optional().default("online"),
   termsAccepted: z.literal(true, {
     message: "Trebuie să accepți regulile rezervării.",
   }),

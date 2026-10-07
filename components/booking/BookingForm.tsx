@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
 import { houseRules } from "@/lib/rules";
+import type { PaymentMethod } from "@/lib/booking";
 
 export type CustomerFields = { name: string; email: string; phone: string };
 
@@ -14,6 +15,9 @@ export function BookingForm({
   onChange,
   terms,
   onTermsChange,
+  paymentMethod,
+  onPaymentMethodChange,
+  paymentHints,
   onSubmit,
   error,
 }: {
@@ -21,6 +25,10 @@ export function BookingForm({
   onChange: (next: CustomerFields) => void;
   terms: boolean;
   onTermsChange: (v: boolean) => void;
+  paymentMethod: PaymentMethod;
+  onPaymentMethodChange: (m: PaymentMethod) => void;
+  /** One-line explanation under each payment option. */
+  paymentHints: Record<PaymentMethod, string>;
   onSubmit: () => void;
   error: string | null;
 }) {
@@ -96,6 +104,38 @@ export function BookingForm({
         </div>
       </div>
 
+      <fieldset className="pt-2">
+        <legend className="eyebrow">Cum plătești</legend>
+        <div className="mt-2 grid gap-2.5 sm:grid-cols-2">
+          {(
+            [
+              ["online", "Online, cu cardul"],
+              ["onsite", "La studio"],
+            ] as const
+          ).map(([value, label]) => (
+            <label
+              key={value}
+              className={cn(
+                "flex cursor-pointer items-start gap-3 border p-4 text-sm transition-colors",
+                paymentMethod === value ? "border-ink" : "border-line hover:border-ink/40",
+              )}
+            >
+              <input
+                type="radio"
+                name="bf-payment"
+                className="mt-0.5 h-4 w-4 accent-ink"
+                checked={paymentMethod === value}
+                onChange={() => onPaymentMethodChange(value)}
+              />
+              <span>
+                <span className="block font-medium text-ink">{label}</span>
+                <span className="mt-1 block text-xs text-ink-soft">{paymentHints[value]}</span>
+              </span>
+            </label>
+          ))}
+        </div>
+      </fieldset>
+
       <div className="pt-2">
         <p className="eyebrow">Regulile casei</p>
         <div
@@ -103,11 +143,16 @@ export function BookingForm({
           onScroll={checkScrolled}
           className="mt-2 max-h-48 overflow-y-auto border border-line p-4 text-sm text-ink-soft"
         >
-          <div className="space-y-2.5">
-            {houseRules.map((rule) => (
-              <p key={rule}>{rule}</p>
+          <ol className="space-y-3">
+            {houseRules.map((rule, i) => (
+              <li key={rule.title}>
+                <span className="font-medium text-ink">
+                  {i + 1}. {rule.title}.
+                </span>{" "}
+                {rule.body}
+              </li>
             ))}
-          </div>
+          </ol>
         </div>
         {!hasReadRules && (
           <p className="mt-1.5 text-xs text-ink-faint">

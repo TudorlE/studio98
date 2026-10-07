@@ -3,7 +3,7 @@ import { getPaymentProvider } from "@/lib/payments";
 import { getBooking, markBookingPaid, markBookingFailed, studioName } from "@/lib/server/bookings";
 import { sendBookingConfirmation } from "@/lib/email";
 import { studios } from "@/lib/studios";
-import { formatMoney } from "@/lib/booking";
+import { formatMoney, sessionEndTime } from "@/lib/booking";
 
 export const dynamic = "force-dynamic";
 // Stripe needs the raw, unparsed body to verify the signature.
@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
           studioName: studioName(slug),
           date: dateLabel,
           startTime: first.start_time.slice(0, 5),
-          endTime: first.end_time.slice(0, 5),
+          endTime: sessionEndTime(first.start_time.slice(0, 5), first.duration),
           durationHours: first.duration,
           addOns: (first.add_ons ?? []).map((a) => a.name),
           totalPaid: formatMoney(total),

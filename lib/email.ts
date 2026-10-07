@@ -17,20 +17,43 @@ export type BookingConfirmationEmail = {
   addOns?: string[];
   totalPaid: string;
   balanceDue?: string | null;
+  /** Pay-at-studio bookings: replaces the "paid" lines. `advance` set = awaiting MIA advance. */
+  onsite?: { total: string; advance: string | null };
 };
 
 export async function sendBookingConfirmation(data: BookingConfirmationEmail): Promise<void> {
-  const subject = `Rezervare confirmată — ${data.studioName} · ${data.date}`;
+  const awaitingAdvance = Boolean(data.onsite?.advance);
+  const subject = awaitingAdvance
+    ? `Rezervare înregistrată — avans în așteptare · ${data.studioName} · ${data.date}`
+    : `Rezervare confirmată — ${data.studioName} · ${data.date}`;
+  const { mia } = site.booking;
+  const paymentLines = data.onsite
+    ? data.onsite.advance
+      ? [
+          `Total:         ${data.onsite.total}`,
+          `Avans (MIA):   ${data.onsite.advance}`,
+          ``,
+          `Rezervarea se confirmă după primirea avansului prin MIA (Plăți Instant):`,
+          `  Destinatar: ${mia.recipient}, ${mia.phone}`,
+          `  Mențiune:   ${data.bookingId}`,
+          `Restul sumei se achită la studio.`,
+        ]
+      : [`Total:         ${data.onsite.total} — se achită la studio`]
+    : [
+        `Achitat:       ${data.totalPaid}`,
+        ...(data.balanceDue ? [`De achitat la studio: ${data.balanceDue}`] : []),
+      ];
   const text = [
-    `Rezervarea ta la ${site.name} este confirmată.`,
+    awaitingAdvance
+      ? `Am înregistrat rezervarea ta la ${site.name}.`
+      : `Rezervarea ta la ${site.name} este confirmată.`,
     ``,
     `Cod rezervare: ${data.bookingId}`,
     `Studio:        ${data.studioName}`,
     `Data:          ${data.date}`,
     `Ora:           ${data.startTime}–${data.endTime} (${data.durationHours}h)`,
     ...(data.addOns && data.addOns.length ? [`Extra:         ${data.addOns.join(", ")}`] : []),
-    `Achitat:       ${data.totalPaid}`,
-    ...(data.balanceDue ? [`De achitat la studio: ${data.balanceDue}`] : []),
+    ...paymentLines,
     ``,
     `Adresă: ${site.contact.address.line1}, ${site.contact.address.line2}`,
     `Întrebări? ${site.contact.email}`,

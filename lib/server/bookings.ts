@@ -227,6 +227,25 @@ export async function markBookingPaid(
   return (data as BookingRow) ?? null;
 }
 
+/**
+ * Pay-at-studio bookings. `provider` is "onsite" (confirmed now, everything paid
+ * at the studio) or "mia" (slot held until the admin receives the MIA advance).
+ */
+export async function markBookingOnsite(
+  id: string,
+  opts: { provider: "onsite" | "mia"; confirm: boolean },
+): Promise<void> {
+  const db = getSupabaseAdmin();
+  const { error } = await db
+    .from("bookings")
+    .update({
+      payment_provider: opts.provider,
+      booking_status: opts.confirm ? "confirmed" : "hold",
+    })
+    .eq("id", id);
+  if (error) throw error;
+}
+
 export async function markBookingFailed(id: string): Promise<void> {
   const db = getSupabaseAdmin();
   const { error } = await db

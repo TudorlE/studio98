@@ -8,7 +8,7 @@ import { site } from "@/lib/site";
 import { isSupabaseConfigured } from "@/lib/supabase/admin";
 import { getBooking, studioName } from "@/lib/server/bookings";
 import { studios } from "@/lib/studios";
-import { formatMoney } from "@/lib/booking";
+import { formatMoney, sessionEndTime } from "@/lib/booking";
 
 export const metadata: Metadata = {
   title: "Rezervare confirmată",
@@ -31,6 +31,10 @@ export default async function ConfirmationPage({
     paid: string;
     balance: string | null;
     settled: boolean;
+    /** Pay at the studio, nothing owed up front. */
+    onsite: boolean;
+    /** Pay at the studio, MIA advance still owed before the booking is confirmed. */
+    miaAdvance: string | null;
   } | null = null;
 
   if (bookingIds.length > 0 && isSupabaseConfigured()) {
@@ -43,14 +47,20 @@ export default async function ConfirmationPage({
         const total = rows.reduce((sum, r) => sum + Number(r.total_price), 0);
         const paidAmount = rows.reduce((sum, r) => sum + (Number(r.deposit_paid) || 0), 0);
         const balance = Math.max(0, total - paidAmount);
+        const provider = rows[0].payment_provider;
         details = {
           studio: studioName(slug),
           dates: rows.map((r) => r.date),
-          time: `${rows[0].start_time.slice(0, 5)} – ${rows[0].end_time.slice(0, 5)}`,
+          time: `${rows[0].start_time.slice(0, 5)} – ${sessionEndTime(rows[0].start_time.slice(0, 5), rows[0].duration)}`,
           total: formatMoney(total),
           paid: formatMoney(paidAmount || total),
           balance: balance > 0 ? formatMoney(balance) : null,
           settled: rows.every((r) => r.payment_status === "paid"),
+          onsite: provider === "onsite",
+          miaAdvance:
+            provider === "mia" && rows.some((r) => r.booking_status === "hold")
+              ? formatMoney(Math.round((total * site.booking.onsiteAdvancePercent) / 100))
+              : null,
         };
       }
     } catch {
@@ -74,12 +84,16 @@ export default async function ConfirmationPage({
             <Check size={20} strokeWidth={1.5} />
           </div>
           <h1 className="headline mt-8 text-5xl leading-none tracking-tight sm:text-6xl">
-            Rezervare confirmată.
+            {details?.miaAdvance ? "Rezervare înregistrată." : "Rezervare confirmată."}
           </h1>
           <p className="mt-5 max-w-prose text-ink-soft">
-            {details && !details.settled
-              ? "Am primit rezervarea ta. Plata este încă în așteptare — verifică emailul pentru pașii următori."
-              : "Un email de confirmare este pe drum. Te rugăm să ajungi cu câteva minute mai devreme."}
+            {details?.miaAdvance
+              ? `Intervalul este păstrat pentru tine. Rezervarea se confirmă după ce primim avansul de ${details.miaAdvance} prin MIA (Plăți Instant) — detaliile sunt mai jos și pe email.`
+              : details?.onsite
+                ? "Te așteptăm! Plata se face la studio, în ziua ședinței. Un email de confirmare este pe drum."
+                : details && !details.settled
+                  ? "Am primit rezervarea ta. Plata este încă în așteptare — verifică emailul pentru pașii următori."
+                  : "Un email de confirmare este pe drum. Te rugăm să ajungi cu câteva minute mai devreme."}
           </p>
 
           <dl className="mt-12 divide-y divide-line border-y border-line text-sm">
@@ -92,8 +106,29 @@ export default async function ConfirmationPage({
                   value={details.dates.join(", ")}
                 />
                 <Line label="Ora" value={details.time} />
-                <Line label={details.balance ? "Achitat" : "Total achitat"} value={details.paid} />
-                {details.balance && <Line label="De achitat la studio" value={details.balance} />}
+                {details.onsite || details.miaAdvance ? (
+                  <>
+                    <Line
+                      label="Total"
+                      value={details.miaAdvance ? details.total : `${details.total} — se achită la studio`}
+                    />
+                    {details.miaAdvance && (
+                      <>
+                        <Line label="Avans prin MIA" value={details.miaAdvance} />
+                        <Line
+                          label="Destinatar"
+                          value={`${site.booking.mia.recipient}, ${site.booking.mia.phone}`}
+                        />
+                        <Line label="Mențiune" value={bookingIds[0] ?? "—"} mono />
+                      </>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <Line label={details.balance ? "Achitat" : "Total achitat"} value={details.paid} />
+                    {details.balance && <Line label="De achitat la studio" value={details.balance} />}
+                  </>
+                )}
               </>
             )}
             {!details && (
