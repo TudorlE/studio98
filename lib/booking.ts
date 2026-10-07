@@ -41,8 +41,19 @@ export function generateDaySlots(): TimeSlot[] {
 
 export const durationOptions = site.booking.durations;
 
+/** "800 lei", "12 800 lei" — thousands grouped with a non-breaking space. */
 export function formatMoney(amount: number): string {
-  return `${site.booking.currencySymbol}${amount.toFixed(0)}`;
+  const digits = Math.round(amount)
+    .toString()
+    .replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+  return `${digits} ${site.booking.currencySymbol}`;
+}
+
+/** Romanian count + noun: "1 oră", "3 ore", "20 de ore". */
+export function pluralRo(n: number, one: string, many: string): string {
+  if (n === 1) return `1 ${one}`;
+  const rest = n % 100;
+  return n >= 20 && (rest === 0 || rest >= 20) ? `${n} de ${many}` : `${n} ${many}`;
 }
 
 /** Is this local date (YYYY-MM-DD) a weekend per site config? */

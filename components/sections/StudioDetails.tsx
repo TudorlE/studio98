@@ -107,7 +107,7 @@ export function StudioDetails() {
         </h2>
 
         <p className="mt-4 text-sm text-paper/85 sm:text-base">
-          {studio.description} De la {formatMoney(studio.pricePerHour)} / oră.
+          {studio.description} {formatMoney(studio.pricePerHour)} / oră.
         </p>
 
         <div className="pointer-events-auto mt-8 inline-block">

@@ -26,7 +26,7 @@ export type Studio = {
   description: string;
   area: string; // placeholder surface
   capacity: string;
-  /** Weekday hourly rate, in currency units (EUR). */
+  /** Weekday hourly rate, in currency units (MDL / lei). */
   pricePerHour: number;
   /** Weekend (Sat/Sun) hourly rate. */
   weekendPricePerHour: number;
@@ -82,8 +82,8 @@ export const studios: Studio[] = [
     description: "O cameră luminoasă, plină de lumină naturală.",
     area: "00 m²",
     capacity: "Up to 00 people",
-    pricePerHour: 25,
-    weekendPricePerHour: 30,
+    pricePerHour: 800,
+    weekendPricePerHour: 800,
     // Duration selection is paused for now (every booking is 1 hour) — both
     // set to 1 so that's always satisfiable. Restore real minimums when the
     // "how long" step comes back.
@@ -113,8 +113,8 @@ export const studios: Studio[] = [
     description: "O cameră întunecată, creată pentru lumină dramatică.",
     area: "00 m²",
     capacity: "Up to 00 people",
-    pricePerHour: 30,
-    weekendPricePerHour: 35,
+    pricePerHour: 1600,
+    weekendPricePerHour: 1600,
     // See the note on Studio 01 — paused while duration selection is off.
     minHours: 1,
     weekendMinHours: 1,

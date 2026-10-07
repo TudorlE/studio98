@@ -7,10 +7,10 @@ insert into public.studios
 values
   ('00000000-0000-0000-0000-000000000001', 'STUDIO 01', 'studio-01',
    'The Light Space — a bright, high-ceiling room with large north-facing windows.',
-   25.00, 30.00, 1, 2, 'Up to 00 people (placeholder)', 'City centre (placeholder)', true),
+   800.00, 800.00, 1, 2, 'Up to 00 people (placeholder)', 'City centre (placeholder)', true),
   ('00000000-0000-0000-0000-000000000002', 'STUDIO 02', 'studio-02',
    'The Dark Space — a blacked-out room with full lighting control.',
-   30.00, 35.00, 2, 3, 'Up to 00 people (placeholder)', 'City centre (placeholder)', true)
+   1600.00, 1600.00, 2, 3, 'Up to 00 people (placeholder)', 'City centre (placeholder)', true)
 on conflict (id) do update
   set name = excluded.name,
       slug = excluded.slug,

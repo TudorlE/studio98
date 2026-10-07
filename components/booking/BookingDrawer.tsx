@@ -14,6 +14,7 @@ import {
   generateDaySlots,
   localDateString,
   multiDatePriceBreakdown,
+  pluralRo,
   rateForDate,
   studioTimezoneLabel,
   type SlotStatus,
@@ -390,7 +391,10 @@ export function BookingDrawer() {
                           {s.subtitle}
                         </span>
                         <span className="mt-1 block text-sm text-ink-soft">
-                          {formatMoney(s.pricePerHour)}–{formatMoney(s.weekendPricePerHour)} / oră
+                          {s.pricePerHour === s.weekendPricePerHour
+                            ? formatMoney(s.pricePerHour)
+                            : `${formatMoney(s.pricePerHour)}–${formatMoney(s.weekendPricePerHour)}`}{" "}
+                          / oră
                         </span>
                       </span>
                     </button>
@@ -535,12 +539,23 @@ export function BookingDrawer() {
                                         {t} — {endTimeFor(t, 1)}
                                       </span>
                                       <span className={cn("text-xs", selected ? "text-white/80" : "text-neutral-400")}>
-                                        {selectable ? `de la ${formatMoney(dayRate)}` : "—"}
+                                        {selectable || selected ? formatMoney(dayRate) : "—"}
                                       </span>
                                     </button>
                                   );
                                 })}
                           </div>
+
+                          {times.length > 0 && !loadingDay && (
+                            <div className="mt-3 flex items-baseline justify-between rounded-2xl bg-neutral-50 px-4 py-3 text-sm">
+                              <span className="text-neutral-500">
+                                {timeSummary} · {pluralRo(times.length, "oră", "ore")} × {formatMoney(dayRate)}
+                              </span>
+                              <span className="font-medium text-neutral-900">
+                                {formatMoney(dayRate * times.length)}
+                              </span>
+                            </div>
+                          )}
                         </div>
                       );
                     })}
@@ -589,9 +604,12 @@ export function BookingDrawer() {
                       : `Continuă cu ${timeSummary}`}
                 </button>
               )}
-              {(step === 1 || step === 2) && breakdown && (
-                <div className="mt-3 flex items-baseline justify-between text-sm">
-                  <span className="text-ink-faint">Total până acum</span>
+              {step === 2 && breakdown && times.length > 0 && (
+                <div className="mt-3 flex items-baseline justify-between gap-4 text-sm">
+                  <span className="text-ink-faint">
+                    Total · {pluralRo(times.length, "oră", "ore")}
+                    {dates.length > 1 && ` × ${pluralRo(dates.length, "zi", "zile")}`}
+                  </span>
                   <span className="font-serif text-2xl tracking-tight">
                     {formatMoney(breakdown.total)}
                   </span>

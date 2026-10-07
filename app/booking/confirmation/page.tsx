@@ -8,6 +8,7 @@ import { site } from "@/lib/site";
 import { isSupabaseConfigured } from "@/lib/supabase/admin";
 import { getBooking, studioName } from "@/lib/server/bookings";
 import { studios } from "@/lib/studios";
+import { formatMoney } from "@/lib/booking";
 
 export const metadata: Metadata = {
   title: "Rezervare confirmată",
@@ -21,8 +22,6 @@ export default async function ConfirmationPage({
 }) {
   const { booking: bookingParam } = await searchParams;
   const bookingIds = (bookingParam ?? "").split(",").map((id) => id.trim()).filter(Boolean);
-
-  const sym = site.booking.currencySymbol;
 
   let details: {
     studio: string;
@@ -48,9 +47,9 @@ export default async function ConfirmationPage({
           studio: studioName(slug),
           dates: rows.map((r) => r.date),
           time: `${rows[0].start_time.slice(0, 5)} – ${rows[0].end_time.slice(0, 5)}`,
-          total: `${sym}${total.toFixed(0)}`,
-          paid: `${sym}${(paidAmount || total).toFixed(0)}`,
-          balance: balance > 0 ? `${sym}${balance.toFixed(0)}` : null,
+          total: formatMoney(total),
+          paid: formatMoney(paidAmount || total),
+          balance: balance > 0 ? formatMoney(balance) : null,
           settled: rows.every((r) => r.payment_status === "paid"),
         };
       }

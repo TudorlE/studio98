@@ -45,8 +45,8 @@ export const site = {
     maxAdvanceDays: 120,
     // Minimum lead time in hours before a slot can be booked.
     minLeadHours: 2,
-    currency: "EUR",
-    currencySymbol: "€",
+    currency: "MDL",
+    currencySymbol: "lei",
     durations: [1, 2, 3, 4, 5, 6],
     // Days that use the weekend rate + weekend minimum (0 = Sunday … 6 = Saturday).
     weekendDays: [6, 0],
