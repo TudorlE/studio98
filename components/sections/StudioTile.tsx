@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { cn } from "@/lib/cn";
-import { subtitleWordSpacing, type Studio } from "@/lib/studios";
+import type { Studio } from "@/lib/studios";
 
 /** Not too fast, not too slow. */
 const SLIDESHOW_INTERVAL_MS = 4500;
@@ -44,15 +44,16 @@ export function StudioTile({ studio, onOpen }: { studio: Studio; onOpen: () => v
         />
       ))}
       <div className="absolute inset-0 bg-black/30 transition-colors group-hover:bg-black/20" />
-      <div className="absolute inset-x-0 bottom-0 p-4 text-left text-paper sm:p-6 lg:p-8">
+      <div className="absolute inset-x-0 bottom-0 p-4 text-center text-paper sm:p-6 lg:p-8">
         <p className="text-[0.7rem] font-medium uppercase tracking-[0.16em] opacity-80 sm:text-xs">
           Studio {studio.index}
         </p>
-        <p
-          className="mt-1 font-serif text-xl leading-[0.85] tracking-tight sm:text-3xl lg:text-5xl"
-          style={{ wordSpacing: subtitleWordSpacing(studio.slug) }}
-        >
-          {studio.subtitle}
+        <p className="mt-1 font-serif text-xl leading-[0.85] tracking-tight sm:text-3xl lg:text-5xl">
+          {studio.subtitle.split(" ").map((word) => (
+            <span key={word} className="block">
+              {word}
+            </span>
+          ))}
         </p>
       </div>
     </button>
