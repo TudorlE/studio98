@@ -87,7 +87,7 @@ export function StudioDetails() {
         <button
           type="button"
           onClick={closeDetails}
-          className="flex h-11 w-11 items-center justify-center border border-paper/40 text-paper transition-colors hover:bg-paper hover:text-ink"
+          className="flex h-11 w-11 items-center justify-center rounded-full border border-paper/40 text-paper transition-colors hover:bg-paper hover:text-ink"
           aria-label="Închide"
         >
           <X size={20} strokeWidth={1.5} />

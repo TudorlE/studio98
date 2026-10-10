@@ -101,7 +101,7 @@ export default async function LegalPage({
           )}
           <Link
             href="/"
-            className="mt-12 inline-flex h-12 items-center border border-ink/25 px-8 text-[0.7rem] font-medium uppercase tracking-[0.18em] transition-colors hover:bg-ink hover:text-paper"
+            className="mt-12 inline-flex h-12 items-center rounded-full border border-ink/25 px-8 text-[0.7rem] font-medium uppercase tracking-[0.18em] transition-colors hover:bg-ink hover:text-paper"
           >
             Înapoi acasă
           </Link>

@@ -6,9 +6,10 @@
 --------------------------------------------------------------------------- */
 
 @theme {
-  --color-paper: #f5f4f0;
-  --color-paper-dim: #edece6;
-  --color-paper-deep: #e4e2da;
+  /* Ivory (classic) #FFFFF0 — warm pastel white, with matching dim/deep steps. */
+  --color-paper: #fffff0;
+  --color-paper-dim: #f7f7e6;
+  --color-paper-deep: #eeedda;
   --color-ink: #111111;
   --color-ink-soft: #6f6f6a;
   --color-ink-faint: #9b9b95;
@@ -16,6 +17,10 @@
   --color-night: #0e0e0d;
   --color-night-soft: #a2a19b;
   --color-night-line: #2a2a28;
+
+  /* Deep Forest Green — the site's accent, replacing the earlier blue. */
+  --color-accent: #123c2b;
+  --color-accent-soft: #2e5344;
 
   --font-sans: var(--font-inter), "Helvetica Neue", Arial, sans-serif;
   --font-serif: var(--font-sans);
@@ -82,7 +87,7 @@ body {
 }
 
 .on-night :focus-visible {
-  outline-color: #f5f4f0;
+  outline-color: #fffff0;
 }
 
 /* Hide scrollbar for horizontal galleries while keeping scroll ---------- */

@@ -6,7 +6,7 @@ type Variant = "solid" | "outline" | "ghost";
 type Tone = "ink" | "paper" | "accent";
 
 const base =
-  "inline-flex items-center justify-center gap-2 h-12 px-7 text-[0.7rem] font-medium uppercase tracking-[0.18em] transition-colors duration-300 disabled:opacity-40 disabled:pointer-events-none select-none";
+  "inline-flex items-center justify-center gap-2 h-12 px-7 rounded-full text-[0.7rem] font-medium uppercase tracking-[0.18em] transition-colors duration-300 disabled:opacity-40 disabled:pointer-events-none select-none";
 
 function styles(variant: Variant, tone: Tone): string {
   const map: Record<Tone, Record<Variant, string>> = {
@@ -21,11 +21,11 @@ function styles(variant: Variant, tone: Tone): string {
         "border border-paper/30 text-paper hover:border-paper hover:bg-paper hover:text-ink",
       ghost: "text-paper hover:text-night-soft",
     },
-    // Same blue used for the selected day/time in the booking calendar.
+    // Deep Forest Green — same accent used for the selected day/time in the booking calendar.
     accent: {
-      solid: "bg-blue-600 text-white hover:bg-blue-700",
-      outline: "border border-blue-600/40 text-blue-600 hover:border-blue-600 hover:bg-blue-600 hover:text-white",
-      ghost: "text-blue-600 hover:text-blue-700",
+      solid: "bg-accent text-white hover:bg-accent-soft",
+      outline: "border border-accent/40 text-accent hover:border-accent hover:bg-accent hover:text-white",
+      ghost: "text-accent hover:text-accent-soft",
     },
   };
   return map[tone][variant];

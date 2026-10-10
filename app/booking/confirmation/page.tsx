@@ -142,7 +142,7 @@ export default async function ConfirmationPage({
           <div className="mt-12 flex flex-wrap gap-3">
             <Link
               href="/"
-              className="inline-flex h-12 items-center border border-ink/25 px-8 text-[0.7rem] font-medium uppercase tracking-[0.18em] transition-colors hover:bg-ink hover:text-paper"
+              className="inline-flex h-12 items-center rounded-full border border-ink/25 px-8 text-[0.7rem] font-medium uppercase tracking-[0.18em] transition-colors hover:bg-ink hover:text-paper"
             >
               Înapoi acasă
             </Link>
@@ -150,7 +150,7 @@ export default async function ConfirmationPage({
               href={site.contact.mapsDirectionsUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex h-12 items-center bg-ink px-8 text-[0.7rem] font-medium uppercase tracking-[0.18em] text-paper transition-colors hover:bg-ink-soft"
+              className="inline-flex h-12 items-center rounded-full bg-ink px-8 text-[0.7rem] font-medium uppercase tracking-[0.18em] text-paper transition-colors hover:bg-ink-soft"
             >
               Indicații rutiere
             </a>

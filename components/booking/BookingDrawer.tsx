@@ -344,7 +344,7 @@ export function BookingDrawer() {
                   <button
                     onClick={goBack}
                     aria-label="Înapoi"
-                    className="grid h-9 w-9 place-items-center text-ink-soft hover:text-ink"
+                    className="grid h-9 w-9 place-items-center rounded-full text-ink-soft hover:bg-paper-deep hover:text-ink"
                   >
                     <ChevronLeft size={20} strokeWidth={1.5} />
                   </button>
@@ -354,7 +354,7 @@ export function BookingDrawer() {
               <button
                 onClick={closeBooking}
                 aria-label="Închide"
-                className="grid h-10 w-10 place-items-center text-ink-soft hover:text-ink"
+                className="grid h-10 w-10 place-items-center rounded-full text-ink-soft hover:bg-paper-deep hover:text-ink"
               >
                 <X size={22} strokeWidth={1.5} />
               </button>
@@ -387,7 +387,7 @@ export function BookingDrawer() {
                       key={s.slug}
                       type="button"
                       onClick={() => pickStudio(s.slug)}
-                      className="overflow-hidden border border-line text-left transition-colors hover:border-ink"
+                      className="overflow-hidden rounded-3xl border border-line text-left transition-colors hover:border-ink"
                     >
                       <span className="relative block aspect-[4/3] w-full bg-paper-deep">
                         <Image
@@ -426,7 +426,7 @@ export function BookingDrawer() {
                       onClick={() => shiftMonth(-1)}
                       disabled={!canPrevMonth}
                       aria-label="Luna anterioară"
-                      className="grid h-8 w-8 shrink-0 place-items-center text-neutral-400 disabled:opacity-20 enabled:hover:text-neutral-700"
+                      className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-neutral-400 disabled:opacity-20 enabled:hover:bg-paper-deep enabled:hover:text-neutral-700"
                     >
                       <ChevronLeft size={18} />
                     </button>
@@ -434,19 +434,19 @@ export function BookingDrawer() {
                       <button
                         type="button"
                         onClick={() => shiftMonth(-1)}
-                        className="hidden text-sm text-neutral-400 hover:text-neutral-700 sm:block"
+                        className="hidden rounded-full text-sm text-neutral-400 hover:text-neutral-700 sm:block"
                       >
                         {MONTHS[(monthCursor.getMonth() + 11) % 12]}
                       </button>
                     )}
-                    <span className="flex items-center gap-2 rounded-full bg-blue-600 px-5 py-2 text-sm font-semibold text-white">
+                    <span className="flex items-center gap-2 rounded-full bg-accent px-5 py-2 text-sm font-semibold text-white">
                       {MONTHS[monthCursor.getMonth()]} {monthCursor.getFullYear()}
                     </span>
                     {canNextMonth && (
                       <button
                         type="button"
                         onClick={() => shiftMonth(1)}
-                        className="hidden text-sm text-neutral-400 hover:text-neutral-700 sm:block"
+                        className="hidden rounded-full text-sm text-neutral-400 hover:text-neutral-700 sm:block"
                       >
                         {MONTHS[(monthCursor.getMonth() + 1) % 12]}
                       </button>
@@ -456,7 +456,7 @@ export function BookingDrawer() {
                       onClick={() => shiftMonth(1)}
                       disabled={!canNextMonth}
                       aria-label="Luna următoare"
-                      className="grid h-8 w-8 shrink-0 place-items-center text-neutral-400 disabled:opacity-20 enabled:hover:text-neutral-700"
+                      className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-neutral-400 disabled:opacity-20 enabled:hover:bg-paper-deep enabled:hover:text-neutral-700"
                     >
                       <ChevronRight size={18} />
                     </button>
@@ -494,7 +494,7 @@ export function BookingDrawer() {
                               "grid h-10 w-10 place-items-center rounded-full text-sm font-medium transition-colors sm:h-11 sm:w-11",
                               disabled && "text-neutral-300 line-through",
                               !disabled && !selected && "text-neutral-800 hover:bg-neutral-100",
-                              selected && "bg-blue-600 text-white",
+                              selected && "bg-accent text-white",
                             )}
                           >
                             {date.getDate()}
@@ -538,7 +538,7 @@ export function BookingDrawer() {
                           <div className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
                             {loadingDay
                               ? allTimes.map((t) => (
-                                  <div key={t} className="h-16 animate-pulse rounded-2xl bg-neutral-100" />
+                                  <div key={t} className="h-16 animate-pulse rounded-full bg-neutral-100" />
                                 ))
                               : allTimes.map((t) => {
                                   const status = statuses[t] ?? "closed";
@@ -551,9 +551,9 @@ export function BookingDrawer() {
                                       disabled={!selectable}
                                       onClick={() => pickTime(t)}
                                       className={cn(
-                                        "flex flex-col items-center justify-center gap-1 rounded-2xl border px-2 py-3 text-center transition-colors",
-                                        selected && "border-blue-600 bg-blue-600 text-white",
-                                        !selected && selectable && "border-neutral-200 text-neutral-900 hover:border-blue-600",
+                                        "flex flex-col items-center justify-center gap-1 rounded-full border px-2 py-3 text-center transition-colors",
+                                        selected && "border-accent bg-accent text-white",
+                                        !selected && selectable && "border-neutral-200 text-neutral-900 hover:border-accent",
                                         !selectable && "border-neutral-100 text-neutral-300",
                                       )}
                                     >
@@ -610,7 +610,7 @@ export function BookingDrawer() {
                   type="button"
                   onClick={submit}
                   disabled={!canSubmit || submitting}
-                  className="flex h-14 w-full items-center justify-center bg-ink text-[0.75rem] font-medium uppercase tracking-[0.18em] text-paper transition-colors hover:bg-ink-soft disabled:opacity-40"
+                  className="flex h-14 w-full items-center justify-center rounded-full bg-ink text-[0.75rem] font-medium uppercase tracking-[0.18em] text-paper transition-colors hover:bg-ink-soft disabled:opacity-40"
                 >
                   {buttonLabel}
                 </button>
@@ -620,7 +620,7 @@ export function BookingDrawer() {
                   type="button"
                   disabled={dates.length === 0 || times.length === 0}
                   onClick={() => setStep(3)}
-                  className="flex h-14 w-full items-center justify-center rounded-full bg-blue-600 text-[0.75rem] font-medium uppercase tracking-[0.18em] text-white transition-colors hover:bg-blue-700 disabled:opacity-30"
+                  className="flex h-14 w-full items-center justify-center rounded-full bg-accent text-[0.75rem] font-medium uppercase tracking-[0.18em] text-white transition-colors hover:bg-accent-soft disabled:opacity-30"
                 >
                   {dates.length === 0
                     ? "Alege o zi"

@@ -15,7 +15,7 @@ export default function OgImage() {
           display: "flex",
           flexDirection: "column",
           justifyContent: "space-between",
-          background: "#f5f4f0",
+          background: "#fffff0",
           color: "#111111",
           padding: 80,
           fontFamily: "Georgia, serif",

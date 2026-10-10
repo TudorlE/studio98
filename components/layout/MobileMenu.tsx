@@ -74,7 +74,7 @@ export function MobileMenu({ open, onClose }: { open: boolean; onClose: () => vo
               <button
                 onClick={onClose}
                 aria-label="Închide"
-                className="grid h-10 w-10 place-items-center text-ink-soft hover:text-ink"
+                className="grid h-10 w-10 place-items-center rounded-full text-ink-soft hover:bg-paper-deep hover:text-ink"
               >
                 <X size={22} strokeWidth={1.5} />
               </button>
@@ -98,7 +98,7 @@ export function MobileMenu({ open, onClose }: { open: boolean; onClose: () => vo
               <div className="mt-10 border-t border-line pt-6">
                 <button
                   onClick={bookNow}
-                  className="flex h-14 w-full items-center justify-center bg-ink text-[0.72rem] font-medium uppercase tracking-[0.18em] text-paper"
+                  className="flex h-14 w-full items-center justify-center rounded-full bg-ink text-[0.72rem] font-medium uppercase tracking-[0.18em] text-paper"
                 >
                   Rezervă un studio
                 </button>

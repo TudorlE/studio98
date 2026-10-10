@@ -26,7 +26,7 @@ export function StudioTile({ studio, onOpen }: { studio: Studio; onOpen: () => v
       type="button"
       onClick={onOpen}
       aria-label={`Vezi ${studio.subtitle} — fotografii și detalii`}
-      className="group relative aspect-[4/3] w-[clamp(17rem,86vw,26rem)] shrink-0 overflow-hidden border border-paper/30 transition-colors hover:border-paper/70 sm:w-[clamp(20rem,32vw,34rem)]"
+      className="group relative aspect-[4/3] w-[clamp(17rem,86vw,26rem)] shrink-0 overflow-hidden rounded-[2rem] border border-paper/30 transition-colors hover:border-paper/70 sm:w-[clamp(20rem,32vw,34rem)]"
     >
       {studio.images.map((image, i) => (
         <Image

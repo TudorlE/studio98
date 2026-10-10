@@ -25,7 +25,7 @@ export function BookStudioButton({
         openBooking(slug);
       }}
       className={cn(
-        "inline-flex h-12 items-center justify-center px-8 text-[0.7rem] font-medium uppercase tracking-[0.18em] transition-colors",
+        "inline-flex h-12 items-center justify-center rounded-full px-8 text-[0.7rem] font-medium uppercase tracking-[0.18em] transition-colors",
         tone === "ink"
           ? "bg-ink text-paper hover:bg-ink-soft"
           : "bg-paper text-ink hover:bg-paper-deep",
