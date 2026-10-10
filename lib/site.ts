@@ -60,11 +60,13 @@ export const site = {
     // must first send an advance of `onsiteAdvancePercent` via MIA.
     onsiteAdvanceAboveHours: 2,
     onsiteAdvancePercent: 50,
-    // MIA (Plăți Instant) transfer details shown to the client.
-    // TODO: replace with the studio's real MIA phone / alias and recipient.
+    // MIA Business — static QR + deep link issued by the bank (Victoriabank/BNM).
+    // Scanning the QR or opening the deep link routes straight to the merchant in
+    // the MIA app; the client still enters the amount and the booking reference.
     mia: {
-      phone: "+373 00 000 000",
-      recipient: "Studio 98 SRL",
+      recipient: "DRAGON STUDIO SRL",
+      qrSrc: "/mia-qr.png",
+      deepLink: "https://mia-qr.bnm.md/1/e/BNM/VIC5426256e7c1149109eeaab3fa2968393",
     },
   },
 } as const;

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { Check } from "lucide-react";
 import { Container } from "@/components/ui/Container";
@@ -115,10 +116,7 @@ export default async function ConfirmationPage({
                     {details.miaAdvance && (
                       <>
                         <Line label="Avans prin MIA" value={details.miaAdvance} />
-                        <Line
-                          label="Destinatar"
-                          value={`${site.booking.mia.recipient}, ${site.booking.mia.phone}`}
-                        />
+                        <Line label="Destinatar" value={site.booking.mia.recipient} />
                         <Line label="Mențiune" value={bookingIds[0] ?? "—"} mono />
                       </>
                     )}
@@ -138,6 +136,33 @@ export default async function ConfirmationPage({
               />
             )}
           </dl>
+
+          {details?.miaAdvance && (
+            <div className="mt-10 flex flex-col items-start gap-6 border border-line p-6 sm:flex-row sm:items-center sm:p-8">
+              <Image
+                src={site.booking.mia.qrSrc}
+                alt="Cod QR MIA pentru plată"
+                width={240}
+                height={240}
+                className="h-32 w-32 shrink-0 sm:h-40 sm:w-40"
+              />
+              <div>
+                <p className="eyebrow">Plătește avansul prin MIA</p>
+                <p className="mt-2 max-w-sm text-sm text-ink-soft">
+                  Scanează codul cu aplicația MIA sau deschide-o direct de pe telefon, apoi
+                  introdu suma și mențiunea de mai sus.
+                </p>
+                <a
+                  href={site.booking.mia.deepLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-4 inline-flex h-12 items-center rounded-full bg-ink px-8 text-[0.7rem] font-medium uppercase tracking-[0.18em] text-paper transition-colors hover:bg-ink-soft"
+                >
+                  Deschide în MIA
+                </a>
+              </div>
+            </div>
+          )}
 
           <div className="mt-12 flex flex-wrap gap-3">
             <Link

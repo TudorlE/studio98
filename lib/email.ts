@@ -34,7 +34,8 @@ export async function sendBookingConfirmation(data: BookingConfirmationEmail): P
           `Avans (MIA):   ${data.onsite.advance}`,
           ``,
           `Rezervarea se confirmă după primirea avansului prin MIA (Plăți Instant):`,
-          `  Destinatar: ${mia.recipient}, ${mia.phone}`,
+          `  Destinatar: ${mia.recipient}`,
+          `  Deschide MIA: ${mia.deepLink}`,
           `  Mențiune:   ${data.bookingId}`,
           `Restul sumei se achită la studio.`,
         ]
