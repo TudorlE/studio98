@@ -229,11 +229,13 @@ export async function markBookingPaid(
 
 /**
  * Pay-at-studio bookings. `provider` is "onsite" (confirmed now, everything paid
- * at the studio) or "mia" (slot held until the admin receives the MIA advance).
+ * at the studio), "mia" (slot held until the admin receives the MIA advance for
+ * a long booking), or "mia_full" (client chose to pay the whole thing via MIA
+ * right now — also held until the admin confirms it arrived).
  */
 export async function markBookingOnsite(
   id: string,
-  opts: { provider: "onsite" | "mia"; confirm: boolean },
+  opts: { provider: "onsite" | "mia" | "mia_full"; confirm: boolean },
 ): Promise<void> {
   const db = getSupabaseAdmin();
   const { error } = await db

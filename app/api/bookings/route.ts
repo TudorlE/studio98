@@ -88,7 +88,41 @@ export async function POST(req: NextRequest) {
   const total = held.reduce((sum, h) => sum + h.breakdown.subtotal, 0);
   const dateLabel = dates.length > 1 ? dates.join(", ") : dates[0];
 
-  // 2a. Pay at the studio — MIA is always offered (optional for short
+  // 2a. Pay the full amount via MIA, right now — held until the admin
+  // confirms it arrived (MIA Business' static QR has no live webhook, so
+  // this always needs a human to confirm, unlike Stripe below).
+  if (input.paymentMethod === "mia") {
+    try {
+      await Promise.all(
+        bookingIds.map((id) => markBookingOnsite(id, { provider: "mia_full", confirm: false })),
+      );
+    } catch (err) {
+      console.error("[bookings] mia", err);
+      await Promise.allSettled(bookingIds.map((id) => markBookingFailed(id)));
+      return NextResponse.json({ error: "Rezervarea nu a putut fi creată" }, { status: 500 });
+    }
+    try {
+      await sendBookingConfirmation({
+        to: input.customer.email,
+        bookingId: bookingIds.join(", "),
+        studioName: studioName(slug),
+        date: dateLabel,
+        startTime: input.startTime,
+        endTime,
+        durationHours: input.durationHours,
+        totalPaid: formatMoney(0),
+        onsite: { total: formatMoney(total), advance: formatMoney(total) },
+      });
+    } catch (err) {
+      console.error("[bookings] mia email", err);
+    }
+    return NextResponse.json({
+      bookingId: bookingIds[0],
+      confirmationUrl: `/booking/confirmation?booking=${bookingIds.join(",")}`,
+    });
+  }
+
+  // 2b. Pay at the studio — MIA is still offered (optional for short
   // bookings, required as an advance for long ones). Long bookings stay on
   // hold until the advance arrives (the admin confirms it); short ones are
   // confirmed right away, with MIA still available if the client wants to
@@ -125,7 +159,7 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  // 2b. Pay online, by card — one hosted Stripe checkout, one line item per date.
+  // 2c. Pay online, by card — one hosted Stripe checkout, one line item per date.
   if (!isPaymentConfigured()) {
     await Promise.allSettled(bookingIds.map((id) => markBookingFailed(id)));
     return NextResponse.json(

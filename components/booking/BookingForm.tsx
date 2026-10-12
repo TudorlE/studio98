@@ -106,9 +106,10 @@ export function BookingForm({
 
       <fieldset className="pt-2">
         <legend className="eyebrow">Cum plătești</legend>
-        <div className="mt-2 grid gap-2.5 sm:grid-cols-2">
+        <div className="mt-2 grid gap-2.5 sm:grid-cols-3">
           {(
             [
+              ["mia", "MIA"],
               ["online", "Online, cu cardul"],
               ["onsite", "La studio"],
             ] as const

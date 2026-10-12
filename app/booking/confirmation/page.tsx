@@ -36,6 +36,8 @@ export default async function ConfirmationPage({
     onsite: boolean;
     /** Pay at the studio, MIA advance still owed before the booking is confirmed. */
     miaAdvance: string | null;
+    /** Client chose to pay the whole thing via MIA, right now — held until confirmed. */
+    miaFull: string | null;
     /** MIA is always offered — mandatory advance (above) or just a convenient option. */
     miaOptionalAmount: string | null;
   } | null = null;
@@ -65,6 +67,7 @@ export default async function ConfirmationPage({
             provider === "mia" && onHold
               ? formatMoney(Math.round((total * site.booking.onsiteAdvancePercent) / 100))
               : null,
+          miaFull: provider === "mia_full" ? formatMoney(total) : null,
           // Not required to hold the slot, but MIA is still offered as a way to pay ahead.
           miaOptionalAmount: provider === "mia" && !onHold ? formatMoney(total) : null,
         };
@@ -90,18 +93,20 @@ export default async function ConfirmationPage({
             <Check size={20} strokeWidth={1.5} />
           </div>
           <h1 className="headline mt-8 text-5xl leading-none tracking-tight sm:text-6xl">
-            {details?.miaAdvance ? "Rezervare înregistrată." : "Rezervare confirmată."}
+            {details?.miaAdvance || details?.miaFull ? "Rezervare înregistrată." : "Rezervare confirmată."}
           </h1>
           <p className="mt-5 max-w-prose text-ink-soft">
             {details?.miaAdvance
               ? `Intervalul este păstrat pentru tine. Rezervarea se confirmă după ce primim avansul de ${details.miaAdvance} prin MIA (Plăți Instant) — detaliile sunt mai jos și pe email.`
-              : details?.miaOptionalAmount
-                ? "Te așteptăm! Poți achita acum prin MIA (vezi mai jos) sau direct la studio, în ziua ședinței. Un email de confirmare este pe drum."
-                : details?.onsite
-                  ? "Te așteptăm! Plata se face la studio, în ziua ședinței. Un email de confirmare este pe drum."
-                  : details && !details.settled
-                    ? "Am primit rezervarea ta. Plata este încă în așteptare — verifică emailul pentru pașii următori."
-                    : "Un email de confirmare este pe drum. Te rugăm să ajungi cu câteva minute mai devreme."}
+              : details?.miaFull
+                ? `Intervalul este păstrat pentru tine. Rezervarea se confirmă după ce primim plata de ${details.miaFull} prin MIA (Plăți Instant) — detaliile sunt mai jos și pe email.`
+                : details?.miaOptionalAmount
+                  ? "Te așteptăm! Poți achita acum prin MIA (vezi mai jos) sau direct la studio, în ziua ședinței. Un email de confirmare este pe drum."
+                  : details?.onsite
+                    ? "Te așteptăm! Plata se face la studio, în ziua ședinței. Un email de confirmare este pe drum."
+                    : details && !details.settled
+                      ? "Am primit rezervarea ta. Plata este încă în așteptare — verifică emailul pentru pașii următori."
+                      : "Un email de confirmare este pe drum. Te rugăm să ajungi cu câteva minute mai devreme."}
           </p>
 
           <dl className="mt-12 divide-y divide-line border-y border-line text-sm">
@@ -114,15 +119,20 @@ export default async function ConfirmationPage({
                   value={details.dates.join(", ")}
                 />
                 <Line label="Ora" value={details.time} />
-                {details.onsite || details.miaAdvance || details.miaOptionalAmount ? (
+                {details.onsite || details.miaAdvance || details.miaFull || details.miaOptionalAmount ? (
                   <>
                     <Line
                       label="Total"
-                      value={details.miaAdvance ? details.total : `${details.total} — se achită la studio`}
+                      value={
+                        details.miaAdvance || details.miaFull
+                          ? details.total
+                          : `${details.total} — se achită la studio`
+                      }
                     />
-                    {(details.miaAdvance || details.miaOptionalAmount) && (
+                    {(details.miaAdvance || details.miaFull || details.miaOptionalAmount) && (
                       <>
                         {details.miaAdvance && <Line label="Avans prin MIA" value={details.miaAdvance} />}
+                        {details.miaFull && <Line label="Plată prin MIA" value={details.miaFull} />}
                         <Line label="Destinatar" value={site.booking.mia.recipient} />
                         <Line label="Mențiune" value={bookingIds[0] ?? "—"} mono />
                       </>
@@ -144,7 +154,7 @@ export default async function ConfirmationPage({
             )}
           </dl>
 
-          {(details?.miaAdvance || details?.miaOptionalAmount) && (
+          {(details?.miaAdvance || details?.miaFull || details?.miaOptionalAmount) && (
             <div className="mt-10 flex flex-col items-start gap-6 border border-line p-6 sm:flex-row sm:items-center sm:p-8">
               <Image
                 src={site.booking.mia.qrSrc}
@@ -155,10 +165,14 @@ export default async function ConfirmationPage({
               />
               <div>
                 <p className="eyebrow">
-                  {details.miaAdvance ? "Plătește avansul prin MIA" : "Poți plăti acum prin MIA"}
+                  {details.miaAdvance
+                    ? "Plătește avansul prin MIA"
+                    : details.miaFull
+                      ? "Plătește prin MIA"
+                      : "Poți plăti acum prin MIA"}
                 </p>
                 <p className="mt-2 max-w-sm text-sm text-ink-soft">
-                  {details.miaAdvance
+                  {details.miaAdvance || details.miaFull
                     ? "Scanează codul cu aplicația MIA sau deschide-o direct de pe telefon, apoi introdu suma și mențiunea de mai sus."
                     : `Opțional — scanează codul sau deschide aplicația MIA și trimite ${details.miaOptionalAmount} cu mențiunea de mai sus. Altfel, achiți la studio.`}
                 </p>

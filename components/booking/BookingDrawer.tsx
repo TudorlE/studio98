@@ -75,7 +75,7 @@ export function BookingDrawer() {
 
   const [customer, setCustomer] = useState<CustomerFields>(emptyCustomer);
   const [terms, setTerms] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("online");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("mia");
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -95,7 +95,7 @@ export function BookingDrawer() {
     setMonthCursor(new Date(today.getFullYear(), today.getMonth(), 1));
     setCustomer(emptyCustomer);
     setTerms(false);
-    setPaymentMethod("online");
+    setPaymentMethod("mia");
     setSubmitError(null);
   }, [isOpen, initialStudio, today]);
 
@@ -275,6 +275,7 @@ export function BookingDrawer() {
 
   const advance = breakdown ? onsiteAdvance(times.length, breakdown.total) : 0;
   const paymentHints: Record<PaymentMethod, string> = {
+    mia: "Plătești acum prin MIA (Plăți Instant) — confirmăm rezervarea după ce primim plata.",
     online: "Plătești acum și rezervarea e confirmată pe loc.",
     onsite:
       advance > 0
@@ -285,6 +286,7 @@ export function BookingDrawer() {
   const buttonLabel = (() => {
     if (submitting) return "Se rezervă…";
     if (!breakdown) return "Rezervă un studio";
+    if (paymentMethod === "mia") return `Rezervă — plătește ${formatMoney(breakdown.total)} prin MIA`;
     if (paymentMethod === "onsite") {
       return advance > 0 ? `Rezervă — avans ${formatMoney(advance)} prin MIA` : "Rezervă — plata la studio";
     }

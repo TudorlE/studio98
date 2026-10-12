@@ -29,6 +29,12 @@ function statusBadge(row: AdminBookingRow): { label: string; className: string }
   if (row.booking_status === "hold" && row.payment_provider === "mia") {
     return { label: "Așteaptă avans MIA", className: "bg-amber-50 text-amber-700" };
   }
+  if (row.booking_status === "hold" && row.payment_provider === "mia_full") {
+    return { label: "Așteaptă plată MIA", className: "bg-amber-50 text-amber-700" };
+  }
+  if (row.payment_provider === "mia_full" && Number(row.deposit_paid) > 0) {
+    return { label: "Plătit prin MIA", className: "bg-accent/10 text-accent" };
+  }
   if (row.payment_provider === "mia" && Number(row.deposit_paid) > 0) {
     return { label: "Avans primit", className: "bg-accent/10 text-accent" };
   }
@@ -95,7 +101,7 @@ export default async function AdminPage() {
                   <th className="px-4 py-3 font-medium">Contact</th>
                   <th className="px-4 py-3 font-medium">Status</th>
                   <th className="px-4 py-3 text-right font-medium">Sumă</th>
-                  <th className="px-4 py-3 font-medium">Avans MIA</th>
+                  <th className="px-4 py-3 font-medium">Confirmă MIA</th>
                 </tr>
               </thead>
               <tbody>
@@ -103,7 +109,12 @@ export default async function AdminPage() {
                   const badge = statusBadge(b);
                   const start = b.start_time.slice(0, 5);
                   const awaitingAdvance = b.booking_status === "hold" && b.payment_provider === "mia";
-                  const advance = awaitingAdvance ? onsiteAdvance(b.duration, b.total_price) : 0;
+                  const awaitingFull = b.booking_status === "hold" && b.payment_provider === "mia_full";
+                  const advance = awaitingAdvance
+                    ? onsiteAdvance(b.duration, b.total_price)
+                    : awaitingFull
+                      ? b.total_price
+                      : 0;
                   return (
                     <tr key={b.id} className="border-b border-line last:border-0">
                       <td className="whitespace-nowrap px-4 py-3">
@@ -133,7 +144,7 @@ export default async function AdminPage() {
                         {formatMoney(b.total_price)}
                       </td>
                       <td className="whitespace-nowrap px-4 py-3">
-                        {awaitingAdvance && (
+                        {(awaitingAdvance || awaitingFull) && (
                           <form action={confirmAdvance} className="flex items-center gap-1.5">
                             <input type="hidden" name="bookingId" value={b.id} />
                             <input
