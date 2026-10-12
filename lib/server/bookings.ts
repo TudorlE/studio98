@@ -259,3 +259,26 @@ export async function markBookingFailed(id: string): Promise<void> {
 export function studioName(slug: StudioSlug): string {
   return studios.find((s) => s.slug === slug)?.name ?? slug;
 }
+
+export type AdminBookingRow = BookingRow & { studio_name: string; studio_slug: string };
+
+/** Every booking, newest first — for the admin panel. */
+export async function listBookings(): Promise<AdminBookingRow[]> {
+  const db = getSupabaseAdmin();
+  const { data, error } = await db
+    .from("bookings")
+    .select("*, studios(name, slug)")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+
+  return (data ?? []).map((row) => {
+    const { studios: studio, ...rest } = row as BookingRow & {
+      studios: { name: string; slug: string } | null;
+    };
+    return {
+      ...rest,
+      studio_name: studio?.name ?? "—",
+      studio_slug: studio?.slug ?? "",
+    };
+  });
+}
