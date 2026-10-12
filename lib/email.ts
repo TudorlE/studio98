@@ -89,7 +89,7 @@ const link = (href: string, label: string) =>
   `<a href="${esc(href)}" target="_blank" style="color:${c.accent};text-decoration:underline;">${esc(label)}</a>`;
 
 export function renderBookingConfirmation(data: BookingConfirmationEmail) {
-  const base = site.domain.replace(/\/$/, "");
+  const base = site.domain;
   const { mia } = site.booking;
   const { payment } = data;
   const awaitingMia = payment.kind !== "onsite";
@@ -303,7 +303,7 @@ ${miaBlock}
  * (if set) next to every client confirmation. Replying goes to the client.
  */
 export function renderBookingNotification(data: BookingConfirmationEmail) {
-  const base = site.domain.replace(/\/$/, "");
+  const base = site.domain;
   const { payment } = data;
   const dateLabels = data.dates.map(formatDateRo);
   const time = `${data.startTime} – ${data.endTime}`;

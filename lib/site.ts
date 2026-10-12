@@ -9,7 +9,8 @@
 export const site = {
   name: "STUDIO 98",
   legalName: "Studio 98 SRL",
-  domain: process.env.NEXT_PUBLIC_SITE_URL || "https://studio98.example", // TODO: real domain
+  // No trailing slash — callers append paths ("/legal/terms").
+  domain: (process.env.NEXT_PUBLIC_SITE_URL || "https://www.98.studio").replace(/\/+$/, ""),
   tagline: "Studiouri pentru fotografie și film",
   description:
     "Două studiouri în centrul orașului — pentru fotografie, film și evenimente. Rezervare la oră.",
