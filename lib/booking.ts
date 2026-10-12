@@ -56,6 +56,12 @@ export function pluralRo(n: number, one: string, many: string): string {
   return n >= 20 && (rest === 0 || rest >= 20) ? `${n} de ${many}` : `${n} ${many}`;
 }
 
+/** "24 de ore" / "30 de minute" — how long an unpaid MIA booking is held. */
+export function miaHoldLabel(): string {
+  const m = site.booking.miaHoldMinutes;
+  return m % 60 === 0 ? pluralRo(m / 60, "oră", "ore") : pluralRo(m, "minut", "minute");
+}
+
 /** Is this local date (YYYY-MM-DD) a weekend per site config? */
 export function isWeekendDate(dateStr: string): boolean {
   const [y, m, d] = dateStr.split("-").map(Number);

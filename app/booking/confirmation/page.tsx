@@ -9,7 +9,7 @@ import { site } from "@/lib/site";
 import { isSupabaseConfigured } from "@/lib/supabase/admin";
 import { getBooking, studioName } from "@/lib/server/bookings";
 import { studios } from "@/lib/studios";
-import { formatMoney, sessionEndTime } from "@/lib/booking";
+import { formatMoney, miaHoldLabel, sessionEndTime } from "@/lib/booking";
 
 export const metadata: Metadata = {
   title: "Rezervare confirmată",
@@ -100,7 +100,7 @@ export default async function ConfirmationPage({
                 Rezervare expirată.
               </h1>
               <p className="mt-5 max-w-prose text-ink-soft">
-                Plata nu a fost confirmată în {site.booking.miaHoldMinutes} de minute, așa că
+                Plata nu a fost confirmată în {miaHoldLabel()}, așa că
                 intervalul a fost eliberat. Dacă ai plătit deja, scrie-ne și rezolvăm imediat.
               </p>
               <Link
@@ -150,7 +150,7 @@ export default async function ConfirmationPage({
                     trimite suma de {miaDue} către {site.booking.mia.recipient}.
                   </p>
                   <p className="mt-3 max-w-sm text-sm font-medium text-ink">
-                    Ai {site.booking.miaHoldMinutes} de minute să achiți — altfel rezervarea se
+                    Ai {miaHoldLabel()} să achiți — altfel rezervarea se
                     anulează automat.
                   </p>
                   <a

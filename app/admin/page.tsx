@@ -174,7 +174,9 @@ export default async function AdminPage() {
                             Se șterge automat la{" "}
                             {new Date(
                               new Date(b.created_at).getTime() + site.booking.miaHoldMinutes * 60_000,
-                            ).toLocaleTimeString("ro-RO", {
+                            ).toLocaleString("ro-RO", {
+                              day: "numeric",
+                              month: "short",
                               hour: "2-digit",
                               minute: "2-digit",
                               timeZone: "Europe/Chisinau",
