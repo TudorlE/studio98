@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { checkAdminPassword, clearAdminCookie, isAdminAuthed, setAdminCookie } from "@/lib/admin-auth";
-import { confirmOnsiteAdvance } from "@/lib/server/bookings";
+import { confirmOnsiteAdvance, deleteBooking } from "@/lib/server/bookings";
 
 export type LoginState = { error: string | null };
 
@@ -25,5 +25,13 @@ export async function confirmAdvance(formData: FormData): Promise<void> {
   const amount = Number(formData.get("amount") ?? 0);
   if (!id) return;
   await confirmOnsiteAdvance(id, amount);
+  revalidatePath("/admin");
+}
+
+export async function removeBooking(formData: FormData): Promise<void> {
+  if (!(await isAdminAuthed())) return;
+  const id = String(formData.get("bookingId") ?? "");
+  if (!id) return;
+  await deleteBooking(id);
   revalidatePath("/admin");
 }

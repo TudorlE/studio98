@@ -1,5 +1,6 @@
 import "server-only";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { site } from "@/lib/site";
 import { studios, addOnById, type StudioSlug } from "@/lib/studios";
 import {
   timeToMinutes,
@@ -36,6 +37,7 @@ export async function getBookedRanges(
   slug: StudioSlug,
   date: string,
 ): Promise<{ start: number; end: number }[]> {
+  await purgeExpiredHolds();
   const db = getSupabaseAdmin();
   const studioId = studioIdForSlug(slug);
 
@@ -70,6 +72,22 @@ export async function getBookedRanges(
   return ranges;
 }
 
+/**
+ * MIA bookings sit on `hold` until the admin confirms the transfer. A hold
+ * older than `miaHoldMinutes` counts as unpaid and is deleted, freeing the
+ * slot. Runs lazily before every availability / admin read — no cron needed.
+ */
+export async function purgeExpiredHolds(): Promise<void> {
+  const db = getSupabaseAdmin();
+  const cutoff = new Date(Date.now() - site.booking.miaHoldMinutes * 60_000).toISOString();
+  const { error } = await db
+    .from("bookings")
+    .delete()
+    .eq("booking_status", "hold")
+    .lt("created_at", cutoff);
+  if (error) throw error;
+}
+
 export async function getAvailability(slug: StudioSlug, date: string, durationHours: number) {
   const bookedRanges = await getBookedRanges(slug, date);
   return computeSlotStatuses({ date, durationHours, bookedRanges });
@@ -81,6 +99,7 @@ export async function getMonthBookingCounts(
   year: number,
   month: number, // 1-12
 ): Promise<Record<string, number>> {
+  await purgeExpiredHolds();
   const db = getSupabaseAdmin();
   const studioId = studioIdForSlug(slug);
   const pad = (n: number) => String(n).padStart(2, "0");
@@ -204,29 +223,6 @@ export async function getBooking(id: string): Promise<BookingRow | null> {
   return (data as BookingRow) ?? null;
 }
 
-export async function markBookingPaid(
-  id: string,
-  opts: { provider: string; reference: string; amountPaid?: number },
-): Promise<BookingRow | null> {
-  const db = getSupabaseAdmin();
-  const update: Record<string, unknown> = {
-    payment_status: "paid",
-    booking_status: "confirmed",
-    payment_provider: opts.provider,
-    payment_reference: opts.reference,
-  };
-  if (typeof opts.amountPaid === "number") update.deposit_paid = opts.amountPaid;
-
-  const { data, error } = await db
-    .from("bookings")
-    .update(update)
-    .eq("id", id)
-    .select("*")
-    .maybeSingle();
-  if (error) throw error;
-  return (data as BookingRow) ?? null;
-}
-
 /**
  * Pay-at-studio bookings. `provider` is "onsite" (confirmed now, everything paid
  * at the studio), "mia" (slot held until the admin receives the MIA advance for
@@ -272,14 +268,27 @@ export async function markBookingFailed(id: string): Promise<void> {
   if (error) throw error;
 }
 
+/** Client-facing studio name, e.g. "Production Studio" / "The Apartment". */
+/** Admin: permanently remove a booking (any status). */
+export async function deleteBooking(id: string): Promise<void> {
+  const db = getSupabaseAdmin();
+  const { error } = await db.from("bookings").delete().eq("id", id);
+  if (error) throw error;
+}
+
 export function studioName(slug: StudioSlug): string {
-  return studios.find((s) => s.slug === slug)?.name ?? slug;
+  const studio = studios.find((s) => s.slug === slug);
+  if (!studio) return slug;
+  return studio.subtitle
+    .toLowerCase()
+    .replace(/\b\p{L}/gu, (c) => c.toUpperCase());
 }
 
 export type AdminBookingRow = BookingRow & { studio_name: string; studio_slug: string };
 
 /** Every booking, newest first — for the admin panel. */
 export async function listBookings(): Promise<AdminBookingRow[]> {
+  await purgeExpiredHolds();
   const db = getSupabaseAdmin();
   const { data, error } = await db
     .from("bookings")
@@ -293,7 +302,7 @@ export async function listBookings(): Promise<AdminBookingRow[]> {
     };
     return {
       ...rest,
-      studio_name: studio?.name ?? "—",
+      studio_name: studio ? studioName(studio.slug as StudioSlug) : "—",
       studio_slug: studio?.slug ?? "",
     };
   });

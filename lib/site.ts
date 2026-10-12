@@ -9,7 +9,8 @@
 export const site = {
   name: "STUDIO 98",
   legalName: "Studio 98 SRL",
-  domain: process.env.NEXT_PUBLIC_SITE_URL || "https://studio98.example", // TODO: real domain
+  // No trailing slash — callers append paths ("/legal/terms").
+  domain: (process.env.NEXT_PUBLIC_SITE_URL || "https://www.98.studio").replace(/\/+$/, ""),
   tagline: "Studiouri pentru fotografie și film",
   description:
     "Două studiouri în centrul orașului — pentru fotografie, film și evenimente. Rezervare la oră.",
@@ -60,6 +61,9 @@ export const site = {
     // must first send an advance of `onsiteAdvancePercent` via MIA.
     onsiteAdvanceAboveHours: 2,
     onsiteAdvancePercent: 50,
+    // Bookings waiting on a MIA transfer ("hold") are deleted automatically if
+    // the admin hasn't confirmed the payment in /admin within this many minutes.
+    miaHoldMinutes: 30,
     // MIA Business — static QR + deep link issued by the bank (Victoriabank/BNM).
     // Scanning the QR or opening the deep link routes straight to the merchant in
     // the MIA app; the client still enters the amount and the booking reference.
