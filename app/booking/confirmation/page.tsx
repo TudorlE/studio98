@@ -36,6 +36,8 @@ export default async function ConfirmationPage({
     onsite: boolean;
     /** Pay at the studio, MIA advance still owed before the booking is confirmed. */
     miaAdvance: string | null;
+    /** MIA is always offered — mandatory advance (above) or just a convenient option. */
+    miaOptionalAmount: string | null;
   } | null = null;
 
   if (bookingIds.length > 0 && isSupabaseConfigured()) {
@@ -49,6 +51,7 @@ export default async function ConfirmationPage({
         const paidAmount = rows.reduce((sum, r) => sum + (Number(r.deposit_paid) || 0), 0);
         const balance = Math.max(0, total - paidAmount);
         const provider = rows[0].payment_provider;
+        const onHold = rows.some((r) => r.booking_status === "hold");
         details = {
           studio: studioName(slug),
           dates: rows.map((r) => r.date),
@@ -59,9 +62,11 @@ export default async function ConfirmationPage({
           settled: rows.every((r) => r.payment_status === "paid"),
           onsite: provider === "onsite",
           miaAdvance:
-            provider === "mia" && rows.some((r) => r.booking_status === "hold")
+            provider === "mia" && onHold
               ? formatMoney(Math.round((total * site.booking.onsiteAdvancePercent) / 100))
               : null,
+          // Not required to hold the slot, but MIA is still offered as a way to pay ahead.
+          miaOptionalAmount: provider === "mia" && !onHold ? formatMoney(total) : null,
         };
       }
     } catch {
@@ -90,11 +95,13 @@ export default async function ConfirmationPage({
           <p className="mt-5 max-w-prose text-ink-soft">
             {details?.miaAdvance
               ? `Intervalul este păstrat pentru tine. Rezervarea se confirmă după ce primim avansul de ${details.miaAdvance} prin MIA (Plăți Instant) — detaliile sunt mai jos și pe email.`
-              : details?.onsite
-                ? "Te așteptăm! Plata se face la studio, în ziua ședinței. Un email de confirmare este pe drum."
-                : details && !details.settled
-                  ? "Am primit rezervarea ta. Plata este încă în așteptare — verifică emailul pentru pașii următori."
-                  : "Un email de confirmare este pe drum. Te rugăm să ajungi cu câteva minute mai devreme."}
+              : details?.miaOptionalAmount
+                ? "Te așteptăm! Poți achita acum prin MIA (vezi mai jos) sau direct la studio, în ziua ședinței. Un email de confirmare este pe drum."
+                : details?.onsite
+                  ? "Te așteptăm! Plata se face la studio, în ziua ședinței. Un email de confirmare este pe drum."
+                  : details && !details.settled
+                    ? "Am primit rezervarea ta. Plata este încă în așteptare — verifică emailul pentru pașii următori."
+                    : "Un email de confirmare este pe drum. Te rugăm să ajungi cu câteva minute mai devreme."}
           </p>
 
           <dl className="mt-12 divide-y divide-line border-y border-line text-sm">
@@ -107,15 +114,15 @@ export default async function ConfirmationPage({
                   value={details.dates.join(", ")}
                 />
                 <Line label="Ora" value={details.time} />
-                {details.onsite || details.miaAdvance ? (
+                {details.onsite || details.miaAdvance || details.miaOptionalAmount ? (
                   <>
                     <Line
                       label="Total"
                       value={details.miaAdvance ? details.total : `${details.total} — se achită la studio`}
                     />
-                    {details.miaAdvance && (
+                    {(details.miaAdvance || details.miaOptionalAmount) && (
                       <>
-                        <Line label="Avans prin MIA" value={details.miaAdvance} />
+                        {details.miaAdvance && <Line label="Avans prin MIA" value={details.miaAdvance} />}
                         <Line label="Destinatar" value={site.booking.mia.recipient} />
                         <Line label="Mențiune" value={bookingIds[0] ?? "—"} mono />
                       </>
@@ -137,7 +144,7 @@ export default async function ConfirmationPage({
             )}
           </dl>
 
-          {details?.miaAdvance && (
+          {(details?.miaAdvance || details?.miaOptionalAmount) && (
             <div className="mt-10 flex flex-col items-start gap-6 border border-line p-6 sm:flex-row sm:items-center sm:p-8">
               <Image
                 src={site.booking.mia.qrSrc}
@@ -147,10 +154,13 @@ export default async function ConfirmationPage({
                 className="h-32 w-32 shrink-0 sm:h-40 sm:w-40"
               />
               <div>
-                <p className="eyebrow">Plătește avansul prin MIA</p>
+                <p className="eyebrow">
+                  {details.miaAdvance ? "Plătește avansul prin MIA" : "Poți plăti acum prin MIA"}
+                </p>
                 <p className="mt-2 max-w-sm text-sm text-ink-soft">
-                  Scanează codul cu aplicația MIA sau deschide-o direct de pe telefon, apoi
-                  introdu suma și mențiunea de mai sus.
+                  {details.miaAdvance
+                    ? "Scanează codul cu aplicația MIA sau deschide-o direct de pe telefon, apoi introdu suma și mențiunea de mai sus."
+                    : `Opțional — scanează codul sau deschide aplicația MIA și trimite ${details.miaOptionalAmount} cu mențiunea de mai sus. Altfel, achiți la studio.`}
                 </p>
                 <a
                   href={site.booking.mia.deepLink}

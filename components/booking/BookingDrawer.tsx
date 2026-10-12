@@ -274,7 +274,7 @@ export function BookingDrawer() {
   const paymentHint =
     advance > 0
       ? `Pentru mai mult de ${pluralRo(site.booking.onsiteAdvanceAboveHours, "oră", "ore")} într-o zi, achiți acum un avans de ${site.booking.onsiteAdvancePercent}% (${formatMoney(advance)}) prin MIA, restul la studio.`
-      : "Achiți totul la studio, în ziua ședinței.";
+      : "Poți achita acum prin MIA, sau direct la studio, în ziua ședinței.";
 
   const buttonLabel = (() => {
     if (submitting) return "Se rezervă…";

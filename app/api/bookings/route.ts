@@ -85,15 +85,14 @@ export async function POST(req: NextRequest) {
   const total = held.reduce((sum, h) => sum + h.breakdown.subtotal, 0);
   const dateLabel = dates.length > 1 ? dates.join(", ") : dates[0];
 
-  // Pay at the studio — the only option. Long bookings stay on hold until
-  // the MIA advance arrives (the admin confirms it); short ones are
-  // confirmed right away.
+  // Pay at the studio — MIA is always offered (optional for short bookings,
+  // required as an advance for long ones). Long bookings stay on hold until
+  // the advance arrives (the admin confirms it); short ones are confirmed
+  // right away, with MIA still available if the client wants to pay ahead.
   const advance = onsiteAdvance(input.durationHours, total);
   try {
     await Promise.all(
-      bookingIds.map((id) =>
-        markBookingOnsite(id, { provider: advance > 0 ? "mia" : "onsite", confirm: advance === 0 }),
-      ),
+      bookingIds.map((id) => markBookingOnsite(id, { provider: "mia", confirm: advance === 0 })),
     );
   } catch (err) {
     console.error("[bookings] onsite", err);

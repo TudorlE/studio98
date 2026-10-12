@@ -29,10 +29,10 @@ function statusBadge(row: AdminBookingRow): { label: string; className: string }
   if (row.booking_status === "hold" && row.payment_provider === "mia") {
     return { label: "Așteaptă avans MIA", className: "bg-amber-50 text-amber-700" };
   }
-  if (row.payment_provider === "mia") {
+  if (row.payment_provider === "mia" && Number(row.deposit_paid) > 0) {
     return { label: "Avans primit", className: "bg-accent/10 text-accent" };
   }
-  if (row.payment_provider === "onsite") {
+  if (row.payment_provider === "mia" || row.payment_provider === "onsite") {
     return { label: "Plată la studio", className: "bg-neutral-100 text-neutral-600" };
   }
   return { label: "În așteptare", className: "bg-amber-50 text-amber-700" };

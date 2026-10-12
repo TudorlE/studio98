@@ -39,7 +39,14 @@ export async function sendBookingConfirmation(data: BookingConfirmationEmail): P
           `  Mențiune:   ${data.bookingId}`,
           `Restul sumei se achită la studio.`,
         ]
-      : [`Total:         ${data.onsite.total} — se achită la studio`]
+      : [
+          `Total:         ${data.onsite.total} — se achită la studio`,
+          ``,
+          `Poți achita și acum prin MIA (Plăți Instant), dacă preferi:`,
+          `  Destinatar: ${mia.recipient}`,
+          `  Deschide MIA: ${mia.deepLink}`,
+          `  Mențiune:   ${data.bookingId}`,
+        ]
     : [
         `Achitat:       ${data.totalPaid}`,
         ...(data.balanceDue ? [`De achitat la studio: ${data.balanceDue}`] : []),
