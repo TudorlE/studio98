@@ -246,6 +246,20 @@ export async function markBookingOnsite(
   if (error) throw error;
 }
 
+/**
+ * Admin confirms a MIA advance arrived — releases the hold and records how
+ * much was actually received. The rest stays due at the studio.
+ */
+export async function confirmOnsiteAdvance(id: string, advanceAmount: number): Promise<void> {
+  const db = getSupabaseAdmin();
+  const { error } = await db
+    .from("bookings")
+    .update({ booking_status: "confirmed", deposit_paid: advanceAmount })
+    .eq("id", id)
+    .eq("booking_status", "hold");
+  if (error) throw error;
+}
+
 export async function markBookingFailed(id: string): Promise<void> {
   const db = getSupabaseAdmin();
   const { error } = await db
