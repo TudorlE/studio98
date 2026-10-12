@@ -147,6 +147,9 @@ export function renderBookingConfirmation(data: BookingConfirmationEmail) {
                     <div style="padding:20px 0 0;font-family:${font};font-size:14px;line-height:22px;color:${c.inkSoft};">
                       Scanează codul cu aplicația băncii tale sau apasă butonul de mai jos de pe telefon, apoi trimite suma de <strong style="color:${c.ink};">${esc(miaDue)}</strong> către <strong style="color:${c.ink};">${esc(mia.recipient)}</strong>.
                     </div>
+                    <div style="padding:12px 0 0;font-family:${font};font-size:14px;line-height:22px;font-weight:600;color:${c.ink};">
+                      Ai ${site.booking.miaHoldMinutes} de minute să achiți — altfel rezervarea se anulează automat.
+                    </div>
                     <div style="padding-top:24px;">${button(mia.deepLink, "Deschide în MIA")}</div>
                   </td>
                 </tr>
@@ -276,6 +279,7 @@ ${miaBlock}
           `DE ACHITAT PRIN MIA: ${miaDue}`,
           `  Destinatar:   ${mia.recipient}`,
           `  Deschide MIA: ${mia.deepLink}`,
+          `  Ai ${site.booking.miaHoldMinutes} de minute să achiți — altfel rezervarea se anulează automat.`,
           ``,
         ]
       : []),
@@ -317,7 +321,7 @@ export function renderBookingNotification(data: BookingConfirmationEmail) {
   const action =
     payment.kind === "onsite"
       ? "Nu trebuie făcut nimic — rezervarea este deja confirmată."
-      : "Când banii apar în contul MIA, confirmă plata în CRM.";
+      : `Când banii apar în contul MIA, confirmă plata în CRM în ${site.booking.miaHoldMinutes} de minute — altfel rezervarea se șterge automat.`;
 
   const subject = `Rezervare nouă — ${data.studioName}, ${dateLabels[0]}, ${data.startTime}`;
 

@@ -41,11 +41,15 @@ export default async function ConfirmationPage({
     miaFull: string | null;
   } | null = null;
 
+  // Unpaid MIA holds are deleted after `miaHoldMinutes` — the link then points at nothing.
+  let expired = false;
+
   if (bookingIds.length > 0 && isSupabaseConfigured()) {
     try {
       const rows = (await Promise.all(bookingIds.map((id) => getBooking(id)))).filter(
         (r): r is NonNullable<typeof r> => Boolean(r),
       );
+      expired = rows.length === 0;
       if (rows.length > 0) {
         const slug = studios.find((s) => s.id === rows[0].studio_id)?.slug ?? "studio-01";
         const total = rows.reduce((sum, r) => sum + Number(r.total_price), 0);
@@ -90,95 +94,119 @@ export default async function ConfirmationPage({
 
       <main className="flex-1 py-24 sm:py-32">
         <Container className="max-w-2xl!">
-          <div className="flex flex-col items-center text-center">
-            <div className="grid h-12 w-12 place-items-center border border-ink">
-              <Check size={20} strokeWidth={1.5} />
-            </div>
-            <h1 className="headline mt-8 text-5xl leading-none tracking-tight sm:text-6xl">
-              {miaDue ? "Rezervare înregistrată." : "Rezervare confirmată."}
-            </h1>
-            <p className="mt-5 max-w-prose text-ink-soft">
-              {details?.miaAdvance
-                ? `Intervalul este păstrat pentru tine. Rezervarea se confirmă după ce primim avansul de ${details.miaAdvance} prin MIA (Plăți Instant). Ți-am trimis și un email de confirmare cu toate detaliile.`
-                : details?.miaFull
-                  ? `Intervalul este păstrat pentru tine. Rezervarea se confirmă după ce primim plata de ${details.miaFull} prin MIA (Plăți Instant). Ți-am trimis și un email de confirmare cu toate detaliile.`
-                  : details?.onsite && details.paidAmount === 0
-                    ? "Te așteptăm! Plata se face la studio, în ziua ședinței. Un email de confirmare este pe drum."
-                    : details && !details.settled && !details.onsite && details.paidAmount === 0
-                      ? "Am primit rezervarea ta. Plata este încă în așteptare — verifică emailul pentru pașii următori."
-                      : "Un email de confirmare este pe drum. Te rugăm să ajungi cu câteva minute mai devreme."}
-            </p>
-          </div>
-
-          {miaDue && (
-            <div className="mt-12 flex flex-col items-center border border-line p-6 text-center sm:p-10">
-              <p className="eyebrow">
-                {details?.miaAdvance ? "Plătește avansul prin MIA" : "Plătește prin MIA"}
+          {expired ? (
+            <div className="flex flex-col items-center text-center">
+              <h1 className="headline text-5xl leading-none tracking-tight sm:text-6xl">
+                Rezervare expirată.
+              </h1>
+              <p className="mt-5 max-w-prose text-ink-soft">
+                Plata nu a fost confirmată în {site.booking.miaHoldMinutes} de minute, așa că
+                intervalul a fost eliberat. Dacă ai plătit deja, scrie-ne și rezolvăm imediat.
               </p>
-              <p className="mt-3 font-serif text-4xl tracking-tight">{miaDue}</p>
-              <Image
-                src={site.booking.mia.qrSrc}
-                alt="Cod QR MIA pentru plată"
-                width={240}
-                height={240}
-                className="mt-6 h-48 w-48 sm:h-56 sm:w-56"
-              />
-              <p className="mt-6 max-w-sm text-sm text-ink-soft">
-                Scanează codul cu aplicația băncii tale sau deschide MIA direct de pe telefon, apoi
-                trimite suma de {miaDue} către {site.booking.mia.recipient}.
-              </p>
-              <a
-                href={site.booking.mia.deepLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-6 inline-flex h-12 items-center rounded-full bg-ink px-8 text-[0.7rem] font-medium uppercase tracking-[0.18em] text-paper transition-colors hover:bg-ink-soft"
+              <Link
+                href="/"
+                className="mt-10 inline-flex h-12 items-center rounded-full bg-ink px-8 text-[0.7rem] font-medium uppercase tracking-[0.18em] text-paper transition-colors hover:bg-ink-soft"
               >
-                Deschide în MIA
-              </a>
+                Rezervă din nou
+              </Link>
             </div>
-          )}
+          ) : (
+            <>
+              <div className="flex flex-col items-center text-center">
+                <div className="grid h-12 w-12 place-items-center border border-ink">
+                  <Check size={20} strokeWidth={1.5} />
+                </div>
+                <h1 className="headline mt-8 text-5xl leading-none tracking-tight sm:text-6xl">
+                  {miaDue ? "Rezervare înregistrată." : "Rezervare confirmată."}
+                </h1>
+                <p className="mt-5 max-w-prose text-ink-soft">
+                  {details?.miaAdvance
+                    ? `Intervalul este păstrat pentru tine. Rezervarea se confirmă după ce primim avansul de ${details.miaAdvance} prin MIA (Plăți Instant). Ți-am trimis și un email de confirmare cu toate detaliile.`
+                    : details?.miaFull
+                      ? `Intervalul este păstrat pentru tine. Rezervarea se confirmă după ce primim plata de ${details.miaFull} prin MIA (Plăți Instant). Ți-am trimis și un email de confirmare cu toate detaliile.`
+                      : details?.onsite && details.paidAmount === 0
+                        ? "Te așteptăm! Plata se face la studio, în ziua ședinței. Un email de confirmare este pe drum."
+                        : details && !details.settled && !details.onsite && details.paidAmount === 0
+                          ? "Am primit rezervarea ta. Plata este încă în așteptare — verifică emailul pentru pașii următori."
+                          : "Un email de confirmare este pe drum. Te rugăm să ajungi cu câteva minute mai devreme."}
+                </p>
+              </div>
 
-          <dl className="mt-12 divide-y divide-line border-y border-line text-sm">
-            {details ? (
-              <>
-                <Line label="Studio" value={details.studio} />
-                <Line
-                  label={details.dates.length > 1 ? "Date" : "Data"}
-                  value={details.dates.join(", ")}
-                />
-                <Line label="Ora" value={details.time} />
-                {miaDue ? (
+              {miaDue && (
+                <div className="mt-12 flex flex-col items-center border border-line p-6 text-center sm:p-10">
+                  <p className="eyebrow">
+                    {details?.miaAdvance ? "Plătește avansul prin MIA" : "Plătește prin MIA"}
+                  </p>
+                  <p className="mt-3 font-serif text-4xl tracking-tight">{miaDue}</p>
+                  <Image
+                    src={site.booking.mia.qrSrc}
+                    alt="Cod QR MIA pentru plată"
+                    width={240}
+                    height={240}
+                    className="mt-6 h-48 w-48 sm:h-56 sm:w-56"
+                  />
+                  <p className="mt-6 max-w-sm text-sm text-ink-soft">
+                    Scanează codul cu aplicația băncii tale sau deschide MIA direct de pe telefon, apoi
+                    trimite suma de {miaDue} către {site.booking.mia.recipient}.
+                  </p>
+                  <p className="mt-3 max-w-sm text-sm font-medium text-ink">
+                    Ai {site.booking.miaHoldMinutes} de minute să achiți — altfel rezervarea se
+                    anulează automat.
+                  </p>
+                  <a
+                    href={site.booking.mia.deepLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-6 inline-flex h-12 items-center rounded-full bg-ink px-8 text-[0.7rem] font-medium uppercase tracking-[0.18em] text-paper transition-colors hover:bg-ink-soft"
+                  >
+                    Deschide în MIA
+                  </a>
+                </div>
+              )}
+
+              <dl className="mt-12 divide-y divide-line border-y border-line text-sm">
+                {details ? (
                   <>
-                    <Line label="Total" value={details.total} />
-                    {details.miaAdvance && (
-                      <Line label="Avans prin MIA" value={details.miaAdvance} />
+                    <Line label="Studio" value={details.studio} />
+                    <Line
+                      label={details.dates.length > 1 ? "Date" : "Data"}
+                      value={details.dates.join(", ")}
+                    />
+                    <Line label="Ora" value={details.time} />
+                    {miaDue ? (
+                      <>
+                        <Line label="Total" value={details.total} />
+                        {details.miaAdvance && (
+                          <Line label="Avans prin MIA" value={details.miaAdvance} />
+                        )}
+                      </>
+                    ) : details.onsite && details.paidAmount === 0 ? (
+                      <Line label="Total" value={`${details.total} — se achită la studio`} />
+                    ) : (
+                      <>
+                        <Line label={details.balance ? "Achitat" : "Total achitat"} value={details.paid} />
+                        {details.balance && <Line label="De achitat la studio" value={details.balance} />}
+                      </>
                     )}
                   </>
-                ) : details.onsite && details.paidAmount === 0 ? (
-                  <Line label="Total" value={`${details.total} — se achită la studio`} />
                 ) : (
-                  <>
-                    <Line label={details.balance ? "Achitat" : "Total achitat"} value={details.paid} />
-                    {details.balance && <Line label="De achitat la studio" value={details.balance} />}
-                  </>
+                  <Line
+                    label="Status"
+                    value="Confirmată — toate detaliile au fost trimise pe email."
+                  />
                 )}
-              </>
-            ) : (
-              <Line
-                label="Status"
-                value="Confirmată — toate detaliile au fost trimise pe email."
-              />
-            )}
-          </dl>
+              </dl>
 
-          <div className="mt-12 flex justify-center">
-            <Link
-              href="/"
-              className="inline-flex h-12 items-center rounded-full border border-ink/25 px-8 text-[0.7rem] font-medium uppercase tracking-[0.18em] transition-colors hover:bg-ink hover:text-paper"
-            >
-              Înapoi acasă
-            </Link>
-          </div>
+              <div className="mt-12 flex justify-center">
+                <Link
+                  href="/"
+                  className="inline-flex h-12 items-center rounded-full border border-ink/25 px-8 text-[0.7rem] font-medium uppercase tracking-[0.18em] transition-colors hover:bg-ink hover:text-paper"
+                >
+                  Înapoi acasă
+                </Link>
+              </div>
+            </>
+          )}
         </Container>
       </main>
 

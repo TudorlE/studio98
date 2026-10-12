@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import { cn } from "@/lib/cn";
 import { formatMoney, onsiteAdvance, sessionEndTime } from "@/lib/booking";
+import { site } from "@/lib/site";
 import { isAdminAuthed } from "@/lib/admin-auth";
 import { isSupabaseConfigured } from "@/lib/supabase/admin";
 import { listBookings, type AdminBookingRow } from "@/lib/server/bookings";
 import { AdminLoginForm } from "./AdminLoginForm";
+import { DeleteBookingButton } from "./DeleteBookingButton";
 import { confirmAdvance, logout } from "./actions";
 
 export const metadata: Metadata = {
@@ -102,6 +104,9 @@ export default async function AdminPage() {
                   <th className="px-4 py-3 font-medium">Status</th>
                   <th className="px-4 py-3 text-right font-medium">Sumă</th>
                   <th className="px-4 py-3 font-medium">Confirmă MIA</th>
+                  <th className="px-4 py-3">
+                    <span className="sr-only">Șterge</span>
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -164,6 +169,24 @@ export default async function AdminPage() {
                             </button>
                           </form>
                         )}
+                        {(awaitingAdvance || awaitingFull) && (
+                          <span className="mt-1 block text-[0.65rem] text-ink-faint">
+                            Se șterge automat la{" "}
+                            {new Date(
+                              new Date(b.created_at).getTime() + site.booking.miaHoldMinutes * 60_000,
+                            ).toLocaleTimeString("ro-RO", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                              timeZone: "Europe/Chisinau",
+                            })}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        <DeleteBookingButton
+                          bookingId={b.id}
+                          label={`${b.customer_name}, ${b.date} ${start}`}
+                        />
                       </td>
                     </tr>
                   );
