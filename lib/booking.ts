@@ -246,6 +246,8 @@ export function sessionEndTime(startTime: string, durationHours: number): string
   );
 }
 
+export type PaymentMethod = "online" | "onsite";
+
 /**
  * What the client owes before the booking is confirmed when paying at the studio.
  * Long on-site bookings need an advance via MIA; short ones need nothing up front.

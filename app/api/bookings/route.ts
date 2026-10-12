@@ -12,7 +12,9 @@ import {
   studioName,
   type HoldResult,
 } from "@/lib/server/bookings";
+import { getPaymentProvider, isPaymentConfigured } from "@/lib/payments";
 import { sendBookingConfirmation } from "@/lib/email";
+import type { CheckoutLineItem } from "@/lib/payments/provider";
 import type { StudioSlug } from "@/lib/studios";
 
 export const dynamic = "force-dynamic";
@@ -35,6 +37,7 @@ export async function POST(req: NextRequest) {
   const input = parsed.data;
   const slug = input.studio as StudioSlug;
   const currency = site.booking.currency;
+  const origin = req.nextUrl.origin;
   // What the client sees: the booked slot ends on the hour, but they leave 5 min before.
   const endTime = sessionEndTime(input.startTime, input.durationHours);
   const dates = [...new Set(input.dates)].sort();
@@ -85,37 +88,81 @@ export async function POST(req: NextRequest) {
   const total = held.reduce((sum, h) => sum + h.breakdown.subtotal, 0);
   const dateLabel = dates.length > 1 ? dates.join(", ") : dates[0];
 
-  // Pay at the studio — MIA is always offered (optional for short bookings,
-  // required as an advance for long ones). Long bookings stay on hold until
-  // the advance arrives (the admin confirms it); short ones are confirmed
-  // right away, with MIA still available if the client wants to pay ahead.
-  const advance = onsiteAdvance(input.durationHours, total);
-  try {
-    await Promise.all(
-      bookingIds.map((id) => markBookingOnsite(id, { provider: "mia", confirm: advance === 0 })),
-    );
-  } catch (err) {
-    console.error("[bookings] onsite", err);
-    await Promise.allSettled(bookingIds.map((id) => markBookingFailed(id)));
-    return NextResponse.json({ error: "Rezervarea nu a putut fi creată" }, { status: 500 });
-  }
-  try {
-    await sendBookingConfirmation({
-      to: input.customer.email,
-      bookingId: bookingIds.join(", "),
-      studioName: studioName(slug),
-      date: dateLabel,
-      startTime: input.startTime,
-      endTime,
-      durationHours: input.durationHours,
-      totalPaid: formatMoney(0),
-      onsite: { total: formatMoney(total), advance: advance > 0 ? formatMoney(advance) : null },
+  // 2a. Pay at the studio — MIA is always offered (optional for short
+  // bookings, required as an advance for long ones). Long bookings stay on
+  // hold until the advance arrives (the admin confirms it); short ones are
+  // confirmed right away, with MIA still available if the client wants to
+  // pay ahead.
+  if (input.paymentMethod === "onsite") {
+    const advance = onsiteAdvance(input.durationHours, total);
+    try {
+      await Promise.all(
+        bookingIds.map((id) => markBookingOnsite(id, { provider: "mia", confirm: advance === 0 })),
+      );
+    } catch (err) {
+      console.error("[bookings] onsite", err);
+      await Promise.allSettled(bookingIds.map((id) => markBookingFailed(id)));
+      return NextResponse.json({ error: "Rezervarea nu a putut fi creată" }, { status: 500 });
+    }
+    try {
+      await sendBookingConfirmation({
+        to: input.customer.email,
+        bookingId: bookingIds.join(", "),
+        studioName: studioName(slug),
+        date: dateLabel,
+        startTime: input.startTime,
+        endTime,
+        durationHours: input.durationHours,
+        totalPaid: formatMoney(0),
+        onsite: { total: formatMoney(total), advance: advance > 0 ? formatMoney(advance) : null },
+      });
+    } catch (err) {
+      console.error("[bookings] onsite email", err);
+    }
+    return NextResponse.json({
+      bookingId: bookingIds[0],
+      confirmationUrl: `/booking/confirmation?booking=${bookingIds.join(",")}`,
     });
-  } catch (err) {
-    console.error("[bookings] onsite email", err);
   }
-  return NextResponse.json({
-    bookingId: bookingIds[0],
-    confirmationUrl: `/booking/confirmation?booking=${bookingIds.join(",")}`,
-  });
+
+  // 2b. Pay online, by card — one hosted Stripe checkout, one line item per date.
+  if (!isPaymentConfigured()) {
+    await Promise.allSettled(bookingIds.map((id) => markBookingFailed(id)));
+    return NextResponse.json(
+      { error: "Plata cu cardul nu este configurată încă. Alege „La studio” sau încearcă mai târziu." },
+      { status: 503 },
+    );
+  }
+  try {
+    const provider = getPaymentProvider();
+
+    const lineItems: CheckoutLineItem[] = held.flatMap((h, i) =>
+      [h.breakdown.studioLine, ...h.breakdown.addOnLines].map((l) => ({
+        name: `${studioName(slug)} — ${dates[i]}`,
+        description: `${l.label} · ${input.startTime}–${endTime}`,
+        amount: Math.round(l.amount * 100),
+        currency,
+        quantity: 1,
+      })),
+    );
+
+    const session = await provider.createCheckoutSession({
+      bookingId: bookingIds[0],
+      customerEmail: input.customer.email,
+      lineItems,
+      successUrl: `${origin}/booking/confirmation?booking=${bookingIds.join(",")}`,
+      cancelUrl: `${origin}/?booking=cancelled`,
+      metadata: {
+        bookingIds: bookingIds.join(","),
+        studio: slug,
+        dates: dates.join(","),
+        startTime: input.startTime,
+      },
+    });
+    return NextResponse.json({ bookingId: bookingIds[0], checkoutUrl: session.url });
+  } catch (err) {
+    console.error("[bookings] checkout", err);
+    await Promise.allSettled(bookingIds.map((id) => markBookingFailed(id)));
+    return NextResponse.json({ error: "Plata nu a putut fi inițiată" }, { status: 502 });
+  }
 }

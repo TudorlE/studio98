@@ -40,9 +40,7 @@ export const createBookingSchema = z.object({
     email: z.string().email().max(180),
     phone: z.string().min(6).max(40),
   }),
-  // Only ever "onsite" (pay at the studio, with a MIA advance for longer bookings) —
-  // kept as a literal rather than dropped so the API stays explicit about the contract.
-  paymentMethod: z.literal("onsite").optional().default("onsite"),
+  paymentMethod: z.enum(["online", "onsite"]).optional().default("online"),
   termsAccepted: z.literal(true, {
     message: "Trebuie să accepți regulile rezervării.",
   }),
