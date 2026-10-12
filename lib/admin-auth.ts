@@ -18,8 +18,9 @@ function expectedCookieValue(): string | null {
 export function checkAdminPassword(input: string): boolean {
   const pw = adminPassword();
   if (!pw) return false;
-  const a = Buffer.from(input);
-  const b = Buffer.from(pw);
+  // Trim stray whitespace/newlines from a copy-paste, but compare case-sensitively.
+  const a = Buffer.from(input.trim());
+  const b = Buffer.from(pw.trim());
   return a.length === b.length && timingSafeEqual(a, b);
 }
 

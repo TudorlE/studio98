@@ -1,12 +1,15 @@
 "use client";
 
+import { useState } from "react";
 import { useActionState } from "react";
+import { Eye, EyeOff } from "lucide-react";
 import { login, type LoginState } from "./actions";
 
 const initialState: LoginState = { error: null };
 
 export function AdminLoginForm() {
   const [state, formAction, pending] = useActionState(login, initialState);
+  const [visible, setVisible] = useState(false);
 
   return (
     <div className="flex min-h-[100svh] items-center justify-center bg-paper px-5">
@@ -14,14 +17,24 @@ export function AdminLoginForm() {
         <p className="font-serif text-2xl tracking-tight">Admin</p>
         <p className="mt-1 text-sm text-ink-soft">Studio 98 — panou de rezervări.</p>
 
-        <input
-          type="password"
-          name="password"
-          placeholder="Parolă"
-          autoFocus
-          required
-          className="mt-6 h-12 w-full rounded-full border border-line bg-transparent px-5 text-sm outline-none transition-colors focus:border-ink"
-        />
+        <div className="relative mt-6">
+          <input
+            type={visible ? "text" : "password"}
+            name="password"
+            placeholder="Parolă"
+            autoFocus
+            required
+            className="h-12 w-full rounded-full border border-line bg-transparent px-5 pr-12 text-sm outline-none transition-colors focus:border-ink"
+          />
+          <button
+            type="button"
+            onClick={() => setVisible((v) => !v)}
+            aria-label={visible ? "Ascunde parola" : "Arată parola"}
+            className="absolute right-1 top-1 grid h-10 w-10 place-items-center rounded-full text-ink-faint hover:text-ink"
+          >
+            {visible ? <EyeOff size={18} strokeWidth={1.5} /> : <Eye size={18} strokeWidth={1.5} />}
+          </button>
+        </div>
 
         {state.error && (
           <p role="alert" className="mt-3 text-sm text-red-600">
