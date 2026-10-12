@@ -246,7 +246,7 @@ export function sessionEndTime(startTime: string, durationHours: number): string
   );
 }
 
-export type PaymentMethod = "mia" | "online" | "onsite";
+export type PaymentMethod = "mia" | "onsite";
 
 /**
  * What the client owes before the booking is confirmed when paying at the studio.

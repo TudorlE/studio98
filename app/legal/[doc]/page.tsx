@@ -22,7 +22,7 @@ const DOCS = {
     body: [
       "PLACEHOLDER. Înlocuiește cu o politică de confidențialitate reală, verificată juridic.",
       "Colectăm numele, emailul și numărul de telefon pe care le oferi pentru a gestiona rezervarea și a trimite confirmări.",
-      "Plata este procesată de furnizorul nostru de plăți. Datele cardului nu ajung niciodată pe serverele noastre și nu sunt stocate de noi.",
+      "Plata se face prin MIA (Plăți Instant), din aplicația băncii tale, sau direct la studio. Nu colectăm și nu stocăm date de card.",
       "Poți cere ștergerea datelor tale de rezervare trimițând un email la " + site.contact.email + ".",
     ],
   },

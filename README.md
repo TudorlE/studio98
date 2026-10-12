@@ -43,8 +43,8 @@ pages; on the homepage that same information is one tap away in the menu
   plus slide-in panels for the menu and booking drawer.
 - **lucide-react** — icons
 - **Supabase** — database + availability + bookings
-- **Stripe** — card / Apple Pay / Google Pay via hosted checkout
-- **Resend** (optional) — confirmation emails
+- **MIA (Plăți Instant)** — Victoriabank static QR; payments confirmed by hand in `/admin`
+- **Resend** (optional) — client confirmations + a "new booking" alert to the studio
 
 ## Getting started
 
@@ -69,14 +69,10 @@ auto-detected as Next.js, no root-directory override).
    | Variable | Value |
    |---|---|
    | `NEXT_PUBLIC_SITE_URL` | your deployment URL, e.g. `https://studio98.vercel.app` |
-   Add the Supabase / Stripe / Resend keys from [`.env.example`](.env.example)
+   Add the Supabase / Resend / admin keys from [`.env.example`](.env.example)
    when you're ready to switch off demo mode.
 3. **Deploy.** Build command `next build` and install `npm install` are the
    defaults — nothing to change.
-4. After adding `STRIPE_WEBHOOK_SECRET`, point a Stripe webhook at
-   `https://<your-domain>/api/webhooks/stripe` (events:
-   `checkout.session.completed`, `checkout.session.expired`,
-   `checkout.session.async_payment_failed`).
 
 `.env*` is gitignored — secrets only live in the Vercel dashboard.
 
@@ -115,31 +111,27 @@ Modelled on how studio-rental widgets (e.g. Mayak / Cue) work:
 Prices are **always recomputed server-side** in `createHold` — the client total
 is display-only.
 
-## Enabling payments
+## Payments
 
-Set `STRIPE_SECRET_KEY` + `STRIPE_WEBHOOK_SECRET` (and
-`NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`). The flow:
+There is no card processor. Clients choose:
+
+- **MIA** — pay the full amount now via the static MIA QR (`site.booking.mia`).
+  The booking stays on `hold` until you confirm the transfer in `/admin`.
+- **La studio** — up to `onsiteAdvanceAboveHours` per day: confirmed at once,
+  paid at the studio. Longer: a `onsiteAdvancePercent` MIA advance is required
+  first (confirmed in `/admin`), the rest is paid at the studio.
 
 ```
-booking form → POST /api/bookings → creates `hold` row
-            → Stripe Checkout (hosted, card never touches our servers)
-            → webhook /api/webhooks/stripe → row becomes `confirmed` + email
-            → /booking/confirmation?booking=<id>
+booking form → POST /api/bookings → creates `hold` row(s)
+            → MIA / onsite rules above → confirmation email (+ studio alert)
+            → /booking/confirmation?booking=<id>  (QR shown only if MIA is due)
 ```
 
-Local webhook testing: `stripe listen --forward-to localhost:3000/api/webhooks/stripe`
+Automatic MIA confirmation needs the bank's dynamic-QR API with payment
+callbacks — the static QR can't notify the site.
 
-### Switching payment provider (e.g. for Moldova)
-
-Everything payment-related sits behind
-[`lib/payments/provider.ts`](lib/payments/provider.ts). To add maib / Paynet /
-another processor:
-
-1. Create `lib/payments/<name>.ts` implementing `PaymentProvider`.
-2. Register it in [`lib/payments/index.ts`](lib/payments/index.ts).
-3. Set `PAYMENT_PROVIDER=<name>`.
-
-No route or UI changes required.
+Email previews (dev only): `/dev/email?kind=mia_full|mia_advance|onsite`,
+add `&to=admin` for the studio alert.
 
 ## Project structure
 
@@ -153,8 +145,8 @@ app/
   legal/[doc]/                 terms / privacy / cancellation (placeholder copy)
   api/
     availability/              GET slot statuses
-    bookings/                  POST create hold + start checkout
-    webhooks/stripe/           POST payment events
+    bookings/                  POST create hold + confirmation email
+  dev/email/                   email previews (dev only)
 components/
   layout/    Header (centered logo + Book button), MobileMenu (the site's
              only other nav — studios, legal), Footer (used on the
@@ -172,10 +164,9 @@ lib/
   studios.ts     studio content + images            (PLACEHOLDER)
   booking.ts     pure slot / pricing / overlap logic
   validation.ts  zod schemas for the API
-  payments/      provider abstraction + Stripe impl
   server/bookings.ts   Supabase-backed booking operations
   supabase/      admin client + row types
-  email.ts       Resend or console fallback
+  email.ts       booking emails (HTML) — Resend or console fallback
 supabase/
   migrations/0001_init.sql     schema + RLS + overlap constraint
   seed.sql

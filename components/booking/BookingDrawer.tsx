@@ -241,8 +241,8 @@ export function BookingDrawer() {
       });
       const data = await res.json();
 
-      if (res.ok && (data.checkoutUrl || data.confirmationUrl)) {
-        window.location.assign(data.checkoutUrl ?? data.confirmationUrl);
+      if (res.ok && data.confirmationUrl) {
+        window.location.assign(data.confirmationUrl);
         return;
       }
       if (res.status === 409) {
@@ -260,38 +260,20 @@ export function BookingDrawer() {
     }
   }, [studio, dates, times, customer, canSubmit, paymentMethod]);
 
-  // Checking the house-rules box is the final step — once everything else on
-  // the form is already valid, it goes straight to payment (no extra click).
-  const autoBookedRef = useRef(false);
-  useEffect(() => {
-    if (!canSubmit) {
-      autoBookedRef.current = false;
-      return;
-    }
-    if (step !== 3 || submitting || autoBookedRef.current) return;
-    autoBookedRef.current = true;
-    void submit();
-  }, [step, canSubmit, submitting, submit]);
-
   const advance = breakdown ? onsiteAdvance(times.length, breakdown.total) : 0;
   const paymentHints: Record<PaymentMethod, string> = {
     mia: "Plătești acum prin MIA (Plăți Instant) — confirmăm rezervarea după ce primim plata.",
-    online: "Plătești acum și rezervarea e confirmată pe loc.",
     onsite:
       advance > 0
         ? `Pentru mai mult de ${pluralRo(site.booking.onsiteAdvanceAboveHours, "oră", "ore")} într-o zi, achiți acum un avans de ${site.booking.onsiteAdvancePercent}% (${formatMoney(advance)}) prin MIA, restul la studio.`
-        : "Poți achita acum prin MIA, sau direct la studio, în ziua ședinței.",
+        : "Plătești direct la studio, în ziua ședinței.",
   };
 
   const buttonLabel = (() => {
     if (submitting) return "Se rezervă…";
     if (!breakdown) return "Rezervă un studio";
     if (paymentMethod === "mia") return `Rezervă — plătește ${formatMoney(breakdown.total)} prin MIA`;
-    if (paymentMethod === "onsite") {
-      return advance > 0 ? `Rezervă — avans ${formatMoney(advance)} prin MIA` : "Rezervă — plata la studio";
-    }
-    if (breakdown.depositPercent < 100) return `Plătește ${formatMoney(breakdown.dueNow)} acum`;
-    return `Plătește ${formatMoney(breakdown.total)} și rezervă`;
+    return advance > 0 ? `Rezervă — avans ${formatMoney(advance)} prin MIA` : "Rezervă — plata la studio";
   })();
 
   const timeSummary =
@@ -643,7 +625,7 @@ export function BookingDrawer() {
                 </div>
               )}
               <p className="mt-3 text-center text-xs text-ink-faint">
-                Plata este sigură. Nu vedem niciodată datele cardului tău.
+                Plata se face prin MIA (Plăți Instant) sau direct la studio.
               </p>
             </div>
           </motion.aside>

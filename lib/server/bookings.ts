@@ -204,29 +204,6 @@ export async function getBooking(id: string): Promise<BookingRow | null> {
   return (data as BookingRow) ?? null;
 }
 
-export async function markBookingPaid(
-  id: string,
-  opts: { provider: string; reference: string; amountPaid?: number },
-): Promise<BookingRow | null> {
-  const db = getSupabaseAdmin();
-  const update: Record<string, unknown> = {
-    payment_status: "paid",
-    booking_status: "confirmed",
-    payment_provider: opts.provider,
-    payment_reference: opts.reference,
-  };
-  if (typeof opts.amountPaid === "number") update.deposit_paid = opts.amountPaid;
-
-  const { data, error } = await db
-    .from("bookings")
-    .update(update)
-    .eq("id", id)
-    .select("*")
-    .maybeSingle();
-  if (error) throw error;
-  return (data as BookingRow) ?? null;
-}
-
 /**
  * Pay-at-studio bookings. `provider` is "onsite" (confirmed now, everything paid
  * at the studio), "mia" (slot held until the admin receives the MIA advance for
@@ -272,8 +249,13 @@ export async function markBookingFailed(id: string): Promise<void> {
   if (error) throw error;
 }
 
+/** Client-facing studio name, e.g. "Production Studio" / "The Apartment". */
 export function studioName(slug: StudioSlug): string {
-  return studios.find((s) => s.slug === slug)?.name ?? slug;
+  const studio = studios.find((s) => s.slug === slug);
+  if (!studio) return slug;
+  return studio.subtitle
+    .toLowerCase()
+    .replace(/\b\p{L}/gu, (c) => c.toUpperCase());
 }
 
 export type AdminBookingRow = BookingRow & { studio_name: string; studio_slug: string };
@@ -293,7 +275,7 @@ export async function listBookings(): Promise<AdminBookingRow[]> {
     };
     return {
       ...rest,
-      studio_name: studio?.name ?? "—",
+      studio_name: studio ? studioName(studio.slug as StudioSlug) : "—",
       studio_slug: studio?.slug ?? "",
     };
   });
