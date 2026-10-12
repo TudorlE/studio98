@@ -5,7 +5,6 @@ import { site } from "@/lib/site";
 import { isSupabaseConfigured } from "@/lib/supabase/admin";
 import {
   createHold,
-  markBookingPaid,
   markBookingFailed,
   markBookingOnsite,
   BookingConflictError,
@@ -13,9 +12,7 @@ import {
   studioName,
   type HoldResult,
 } from "@/lib/server/bookings";
-import { getPaymentProvider, isPaymentConfigured } from "@/lib/payments";
 import { sendBookingConfirmation } from "@/lib/email";
-import type { CheckoutLineItem } from "@/lib/payments/provider";
 import type { StudioSlug } from "@/lib/studios";
 
 export const dynamic = "force-dynamic";
@@ -38,7 +35,6 @@ export async function POST(req: NextRequest) {
   const input = parsed.data;
   const slug = input.studio as StudioSlug;
   const currency = site.booking.currency;
-  const origin = req.nextUrl.origin;
   // What the client sees: the booked slot ends on the hour, but they leave 5 min before.
   const endTime = sessionEndTime(input.startTime, input.durationHours);
   const dates = [...new Set(input.dates)].sort();
@@ -89,89 +85,22 @@ export async function POST(req: NextRequest) {
   const total = held.reduce((sum, h) => sum + h.breakdown.subtotal, 0);
   const dateLabel = dates.length > 1 ? dates.join(", ") : dates[0];
 
-  // 2a. Pay at the studio. Long bookings stay on hold until the MIA advance
-  // arrives (the admin confirms it); short ones are confirmed right away.
-  if (input.paymentMethod === "onsite") {
-    const advance = onsiteAdvance(input.durationHours, total);
-    try {
-      await Promise.all(
-        bookingIds.map((id) =>
-          markBookingOnsite(id, { provider: advance > 0 ? "mia" : "onsite", confirm: advance === 0 }),
-        ),
-      );
-    } catch (err) {
-      console.error("[bookings] onsite", err);
-      await Promise.allSettled(bookingIds.map((id) => markBookingFailed(id)));
-      return NextResponse.json({ error: "Rezervarea nu a putut fi creată" }, { status: 500 });
-    }
-    try {
-      await sendBookingConfirmation({
-        to: input.customer.email,
-        bookingId: bookingIds.join(", "),
-        studioName: studioName(slug),
-        date: dateLabel,
-        startTime: input.startTime,
-        endTime,
-        durationHours: input.durationHours,
-        totalPaid: formatMoney(0),
-        onsite: { total: formatMoney(total), advance: advance > 0 ? formatMoney(advance) : null },
-      });
-    } catch (err) {
-      console.error("[bookings] onsite email", err);
-    }
-    return NextResponse.json({
-      bookingId: bookingIds[0],
-      confirmationUrl: `/booking/confirmation?booking=${bookingIds.join(",")}`,
-    });
-  }
-
-  // 2b. Payments configured → one hosted checkout, one line item per date.
-  if (isPaymentConfigured()) {
-    try {
-      const provider = getPaymentProvider();
-
-      const lineItems: CheckoutLineItem[] = held.flatMap((h, i) =>
-        [h.breakdown.studioLine, ...h.breakdown.addOnLines].map((l) => ({
-          name: `${studioName(slug)} — ${dates[i]}`,
-          description: `${l.label} · ${input.startTime}–${endTime}`,
-          amount: Math.round(l.amount * 100),
-          currency,
-          quantity: 1,
-        })),
-      );
-
-      const session = await provider.createCheckoutSession({
-        bookingId: bookingIds[0],
-        customerEmail: input.customer.email,
-        lineItems,
-        successUrl: `${origin}/booking/confirmation?booking=${bookingIds.join(",")}`,
-        cancelUrl: `${origin}/?booking=cancelled`,
-        metadata: {
-          bookingIds: bookingIds.join(","),
-          studio: slug,
-          dates: dates.join(","),
-          startTime: input.startTime,
-        },
-      });
-      return NextResponse.json({ bookingId: bookingIds[0], checkoutUrl: session.url });
-    } catch (err) {
-      console.error("[bookings] checkout", err);
-      await Promise.allSettled(bookingIds.map((id) => markBookingFailed(id)));
-      return NextResponse.json({ error: "Plata nu a putut fi inițiată" }, { status: 502 });
-    }
-  }
-
-  // 2c. No payment provider → confirm immediately (demo / manual-payment mode).
+  // Pay at the studio — the only option. Long bookings stay on hold until
+  // the MIA advance arrives (the admin confirms it); short ones are
+  // confirmed right away.
+  const advance = onsiteAdvance(input.durationHours, total);
   try {
     await Promise.all(
-      held.map((h) =>
-        markBookingPaid(h.booking.id, {
-          provider: "manual",
-          reference: "manual",
-          amountPaid: h.breakdown.dueNow,
-        }),
+      bookingIds.map((id) =>
+        markBookingOnsite(id, { provider: advance > 0 ? "mia" : "onsite", confirm: advance === 0 }),
       ),
     );
+  } catch (err) {
+    console.error("[bookings] onsite", err);
+    await Promise.allSettled(bookingIds.map((id) => markBookingFailed(id)));
+    return NextResponse.json({ error: "Rezervarea nu a putut fi creată" }, { status: 500 });
+  }
+  try {
     await sendBookingConfirmation({
       to: input.customer.email,
       bookingId: bookingIds.join(", "),
@@ -180,16 +109,14 @@ export async function POST(req: NextRequest) {
       startTime: input.startTime,
       endTime,
       durationHours: input.durationHours,
-      addOns: held[0]?.breakdown.addOnLines.map((l) => l.label) ?? [],
-      totalPaid: formatMoney(total),
-      balanceDue: null,
+      totalPaid: formatMoney(0),
+      onsite: { total: formatMoney(total), advance: advance > 0 ? formatMoney(advance) : null },
     });
   } catch (err) {
-    console.error("[bookings] manual confirm", err);
+    console.error("[bookings] onsite email", err);
   }
   return NextResponse.json({
     bookingId: bookingIds[0],
     confirmationUrl: `/booking/confirmation?booking=${bookingIds.join(",")}`,
-    paymentSkipped: true,
   });
 }

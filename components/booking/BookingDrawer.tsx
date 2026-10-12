@@ -18,7 +18,6 @@ import {
   rateForDate,
   sessionEndTime,
   studioTimezoneLabel,
-  type PaymentMethod,
   type SlotStatus,
 } from "@/lib/booking";
 import { BookingForm, type CustomerFields } from "./BookingForm";
@@ -75,7 +74,6 @@ export function BookingDrawer() {
 
   const [customer, setCustomer] = useState<CustomerFields>(emptyCustomer);
   const [terms, setTerms] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("online");
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -95,7 +93,6 @@ export function BookingDrawer() {
     setMonthCursor(new Date(today.getFullYear(), today.getMonth(), 1));
     setCustomer(emptyCustomer);
     setTerms(false);
-    setPaymentMethod("online");
     setSubmitError(null);
   }, [isOpen, initialStudio, today]);
 
@@ -230,7 +227,7 @@ export function BookingDrawer() {
           startTime: times[0],
           durationHours: times.length,
           addOnIds: [],
-          paymentMethod,
+          paymentMethod: "onsite",
           customer: {
             name: customer.name.trim(),
             email: customer.email.trim(),
@@ -258,7 +255,7 @@ export function BookingDrawer() {
     } finally {
       setSubmitting(false);
     }
-  }, [studio, dates, times, customer, canSubmit, paymentMethod]);
+  }, [studio, dates, times, customer, canSubmit]);
 
   // Checking the house-rules box is the final step — once everything else on
   // the form is already valid, it goes straight to payment (no extra click).
@@ -274,22 +271,15 @@ export function BookingDrawer() {
   }, [step, canSubmit, submitting, submit]);
 
   const advance = breakdown ? onsiteAdvance(times.length, breakdown.total) : 0;
-  const paymentHints: Record<PaymentMethod, string> = {
-    online: "Plătești acum și rezervarea e confirmată pe loc.",
-    onsite:
-      advance > 0
-        ? `Pentru mai mult de ${pluralRo(site.booking.onsiteAdvanceAboveHours, "oră", "ore")} într-o zi, achiți acum un avans de ${site.booking.onsiteAdvancePercent}% (${formatMoney(advance)}) prin MIA, restul la studio.`
-        : "Achiți totul la studio, în ziua ședinței.",
-  };
+  const paymentHint =
+    advance > 0
+      ? `Pentru mai mult de ${pluralRo(site.booking.onsiteAdvanceAboveHours, "oră", "ore")} într-o zi, achiți acum un avans de ${site.booking.onsiteAdvancePercent}% (${formatMoney(advance)}) prin MIA, restul la studio.`
+      : "Achiți totul la studio, în ziua ședinței.";
 
   const buttonLabel = (() => {
     if (submitting) return "Se rezervă…";
     if (!breakdown) return "Rezervă un studio";
-    if (paymentMethod === "onsite") {
-      return advance > 0 ? `Rezervă — avans ${formatMoney(advance)} prin MIA` : "Rezervă — plata la studio";
-    }
-    if (breakdown.depositPercent < 100) return `Plătește ${formatMoney(breakdown.dueNow)} acum`;
-    return `Plătește ${formatMoney(breakdown.total)} și rezervă`;
+    return advance > 0 ? `Rezervă — avans ${formatMoney(advance)} prin MIA` : "Rezervă — plata la studio";
   })();
 
   const timeSummary =
@@ -590,9 +580,7 @@ export function BookingDrawer() {
                   onChange={setCustomer}
                   terms={terms}
                   onTermsChange={setTerms}
-                  paymentMethod={paymentMethod}
-                  onPaymentMethodChange={setPaymentMethod}
-                  paymentHints={paymentHints}
+                  paymentHint={paymentHint}
                   onSubmit={submit}
                   error={submitError}
                 />
@@ -641,7 +629,7 @@ export function BookingDrawer() {
                 </div>
               )}
               <p className="mt-3 text-center text-xs text-ink-faint">
-                Plata este sigură. Nu vedem niciodată datele cardului tău.
+                Plătești la studio — un eventual avans se trimite prin MIA.
               </p>
             </div>
           </motion.aside>
