@@ -16,7 +16,7 @@ export function Header() {
     <>
       <header className="fixed inset-x-0 top-0 z-50 border-b border-line bg-paper/95 backdrop-blur-sm">
         <div className="relative flex flex-col items-center px-5 pb-4 pt-4 sm:pb-5 sm:pt-6">
-          <LanguageSwitcher className="absolute left-4 top-5 sm:left-6 sm:top-7" />
+          <LanguageSwitcher className="absolute left-3 top-5 sm:left-6 sm:top-7" />
 
           <button
             onClick={() => setMenuOpen(true)}

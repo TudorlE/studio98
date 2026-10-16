@@ -21,7 +21,7 @@ export function LanguageSwitcher({ className }: { className?: string }) {
   };
 
   return (
-    <nav aria-label={t.nav.language} className={cn("flex items-center gap-1", className)}>
+    <nav aria-label={t.nav.language} className={cn("flex items-center sm:gap-1", className)}>
       {locales.map((l) => (
         <a
           key={l}
@@ -32,7 +32,7 @@ export function LanguageSwitcher({ className }: { className?: string }) {
           aria-current={l === current ? "true" : undefined}
           onClick={go(l)}
           className={cn(
-            "grid h-8 min-w-8 place-items-center rounded-full px-1.5 text-[0.68rem] font-semibold uppercase tracking-[0.12em] transition-colors",
+            "grid h-8 min-w-7 place-items-center rounded-full px-1 text-[0.68rem] sm:min-w-8 sm:px-1.5 font-semibold uppercase tracking-[0.12em] transition-colors",
             l === current ? "text-ink" : "text-ink-faint hover:text-ink",
           )}
         >
