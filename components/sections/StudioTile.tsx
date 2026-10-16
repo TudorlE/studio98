@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { cn } from "@/lib/cn";
 import type { Studio } from "@/lib/studios";
+import { fmt } from "@/lib/i18n";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 /** Not too fast, not too slow. */
 const SLIDESHOW_INTERVAL_MS = 4500;
@@ -11,6 +13,7 @@ const CROSSFADE_MS = 1000;
 
 export function StudioTile({ studio, onOpen }: { studio: Studio; onOpen: () => void }) {
   const [photoIndex, setPhotoIndex] = useState(0);
+  const { t } = useI18n();
 
   useEffect(() => {
     if (studio.images.length <= 1) return;
@@ -25,7 +28,7 @@ export function StudioTile({ studio, onOpen }: { studio: Studio; onOpen: () => v
     <button
       type="button"
       onClick={onOpen}
-      aria-label={`Vezi ${studio.subtitle} — fotografii și detalii`}
+      aria-label={fmt(t.studio.photosAndDetails, { name: studio.subtitle })}
       className="group relative aspect-[4/3] w-[clamp(17rem,86vw,26rem)] shrink-0 overflow-hidden rounded-[2rem] border border-paper/30 transition-colors hover:border-paper/70 sm:w-[clamp(20rem,32vw,34rem)]"
     >
       {studio.images.map((image, i) => (
@@ -46,7 +49,7 @@ export function StudioTile({ studio, onOpen }: { studio: Studio; onOpen: () => v
       <div className="absolute inset-0 bg-black/30 transition-colors group-hover:bg-black/20" />
       <div className="absolute inset-x-0 bottom-0 p-4 text-center text-paper sm:p-6 lg:p-8">
         <p className="text-[0.7rem] font-medium uppercase tracking-[0.16em] opacity-80 sm:text-xs">
-          Studio {studio.index}
+          {fmt(t.studio.label, { index: studio.index })}
         </p>
         <p className="mt-1 font-serif text-xl leading-[0.85] tracking-tight sm:text-3xl lg:text-5xl">
           {studio.subtitle.split(" ").map((word) => (

@@ -13,8 +13,8 @@ import {
   generateDaySlots,
   localDateString,
   multiDatePriceBreakdown,
+  formatHours,
   onsiteAdvance,
-  pluralRo,
   rateForDate,
   sessionEndTime,
   studioTimezoneLabel,
@@ -23,15 +23,11 @@ import {
 } from "@/lib/booking";
 import { BookingForm, type CustomerFields } from "./BookingForm";
 import { useBookingDrawer } from "./BookingDrawerContext";
+import { useI18n } from "@/components/i18n/I18nProvider";
+import { fmt, intlLocale, plural } from "@/lib/i18n";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 const emptyCustomer: CustomerFields = { name: "", email: "", phone: "" };
-
-const DOW = ["Du", "Lu", "Ma", "Mi", "Jo", "Vi", "Sâ"];
-const MONTHS = [
-  "Ianuarie", "Februarie", "Martie", "Aprilie", "Mai", "Iunie",
-  "Iulie", "August", "Septembrie", "Octombrie", "Noiembrie", "Decembrie",
-];
 
 type Step = 1 | 2 | 3;
 type DayStatus = "busy" | "full";
@@ -51,6 +47,21 @@ function intersectStatuses(maps: Record<string, SlotStatus>[]): Record<string, S
 
 export function BookingDrawer() {
   const { isOpen, initialStudio, closeBooking } = useBookingDrawer();
+  const { locale, t: dict } = useI18n();
+  const t = dict.booking;
+  const DOW = t.weekdaysShort;
+  const MONTHS = t.months;
+  const money = (n: number) => formatMoney(n, locale);
+  const dayHeading = useMemo(
+    () =>
+      new Intl.DateTimeFormat(intlLocale[locale], {
+        weekday: "short",
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      }),
+    [locale],
+  );
 
   const [step, setStep] = useState<Step>(1);
   const [studio, setStudio] = useState<StudioSlug | null>(null);
@@ -148,11 +159,11 @@ export function BookingDrawer() {
         );
       } catch (err) {
         if ((err as Error).name === "AbortError") return;
-        setAvailabilityError("Nu am putut încărca orele disponibile. Încearcă din nou.");
+        setAvailabilityError(t.loadError);
         setStatuses(null);
       }
     },
-    [],
+    [t.loadError],
   );
 
   useEffect(() => {
@@ -231,6 +242,7 @@ export function BookingDrawer() {
           durationHours: times.length,
           addOnIds: [],
           paymentMethod,
+          locale,
           customer: {
             name: customer.name.trim(),
             email: customer.email.trim(),
@@ -246,34 +258,38 @@ export function BookingDrawer() {
         return;
       }
       if (res.status === 409) {
-        setSubmitError(data.error ?? "Unul dintre intervalele alese tocmai a fost rezervat.");
+        setSubmitError(data.error ?? t.errors.conflict);
         setTimes([]);
         setStep(2);
         setReloadKey((k) => k + 1);
         return;
       }
-      setSubmitError(data.error ?? "A apărut o eroare. Încearcă din nou.");
+      setSubmitError(data.error ?? t.errors.generic);
     } catch {
-      setSubmitError("Nicio conexiune. Încearcă din nou.");
+      setSubmitError(t.errors.network);
     } finally {
       setSubmitting(false);
     }
-  }, [studio, dates, times, customer, canSubmit, paymentMethod]);
+  }, [studio, dates, times, customer, canSubmit, paymentMethod, locale, t.errors]);
 
   const advance = breakdown ? onsiteAdvance(times.length, breakdown.total) : 0;
   const paymentHints: Record<PaymentMethod, string> = {
-    mia: "Plătești acum prin MIA (Plăți Instant) — confirmăm rezervarea după ce primim plata.",
+    mia: t.hints.mia,
     onsite:
       advance > 0
-        ? `Pentru mai mult de ${pluralRo(site.booking.onsiteAdvanceAboveHours, "oră", "ore")} într-o zi, achiți acum un avans de ${site.booking.onsiteAdvancePercent}% (${formatMoney(advance)}) prin MIA, restul la studio.`
-        : "Plătești direct la studio, în ziua ședinței.",
+        ? fmt(t.hints.onsiteAdvance, {
+            hours: formatHours(site.booking.onsiteAdvanceAboveHours, locale),
+            percent: site.booking.onsiteAdvancePercent,
+            amount: money(advance),
+          })
+        : t.hints.onsite,
   };
 
   const buttonLabel = (() => {
-    if (submitting) return "Se rezervă…";
-    if (!breakdown) return "Rezervă un studio";
-    if (paymentMethod === "mia") return `Rezervă — plătește ${formatMoney(breakdown.total)} prin MIA`;
-    return advance > 0 ? `Rezervă — avans ${formatMoney(advance)} prin MIA` : "Rezervă — plata la studio";
+    if (submitting) return t.submitting;
+    if (!breakdown) return t.title;
+    if (paymentMethod === "mia") return fmt(t.submitMia, { amount: money(breakdown.total) });
+    return advance > 0 ? fmt(t.submitAdvance, { amount: money(advance) }) : t.submitOnsite;
   })();
 
   const timeSummary =
@@ -281,11 +297,7 @@ export function BookingDrawer() {
       ? null
       : `${times[0]}–${sessionEndTime(times[0], times.length)}`;
 
-  const stepTitle: Record<Step, string> = {
-    1: "Alege un studio",
-    2: "Zi și oră",
-    3: "Datele tale",
-  };
+  const stepTitle: Record<Step, string> = t.steps;
 
   const monthDays = useMemo(() => {
     const count = new Date(monthCursor.getFullYear(), monthCursor.getMonth() + 1, 0).getDate();
@@ -304,7 +316,7 @@ export function BookingDrawer() {
         <>
           <motion.button
             type="button"
-            aria-label="Închide"
+            aria-label={t.close}
             className="fixed inset-0 z-[80] bg-black/45"
             onClick={closeBooking}
             initial={{ opacity: 0 }}
@@ -315,7 +327,7 @@ export function BookingDrawer() {
           <motion.aside
             role="dialog"
             aria-modal="true"
-            aria-label="Rezervă un studio"
+            aria-label={t.title}
             className="fixed inset-0 z-[90] flex w-full flex-col bg-paper font-sans sm:inset-y-0 sm:right-0 sm:left-auto sm:w-[85vw] sm:max-w-[560px] lg:w-[55vw] lg:max-w-[760px]"
             initial={{ x: "100%" }}
             animate={{ x: 0 }}
@@ -327,17 +339,17 @@ export function BookingDrawer() {
                 {step > 1 && (
                   <button
                     onClick={goBack}
-                    aria-label="Înapoi"
+                    aria-label={t.back}
                     className="grid h-9 w-9 place-items-center rounded-full text-ink-soft hover:bg-paper-deep hover:text-ink"
                   >
                     <ChevronLeft size={20} strokeWidth={1.5} />
                   </button>
                 )}
-                <p className="font-serif text-xl tracking-tight">Rezervă un studio</p>
+                <p className="font-serif text-xl tracking-tight">{t.title}</p>
               </div>
               <button
                 onClick={closeBooking}
-                aria-label="Închide"
+                aria-label={t.close}
                 className="grid h-10 w-10 place-items-center rounded-full text-ink-soft hover:bg-paper-deep hover:text-ink"
               >
                 <X size={22} strokeWidth={1.5} />
@@ -347,14 +359,14 @@ export function BookingDrawer() {
             {/* Where you are + what you've picked so far — always visible, no scrolling needed. */}
             <div className="flex items-center gap-2 border-b border-line px-6 py-3 text-xs text-ink-faint sm:px-8">
               <span className="font-medium text-ink">
-                Pasul {step} din 3 — {stepTitle[step]}
+                {fmt(t.stepOf, { step, title: stepTitle[step] })}
               </span>
               {(studioData || dates.length > 0 || timeSummary) && (
                 <span className="truncate">
                   ·{" "}
                   {[
                     studioData?.subtitle,
-                    dates.length > 0 && `${dates.length} ${dates.length > 1 ? "zile" : "zi"}`,
+                    dates.length > 0 && plural(locale, dates.length, dict.units.day),
                     timeSummary,
                   ]
                     .filter(Boolean)
@@ -391,9 +403,9 @@ export function BookingDrawer() {
                         </span>
                         <span className="mt-1 block text-sm text-ink-soft">
                           {s.pricePerHour === s.weekendPricePerHour
-                            ? formatMoney(s.pricePerHour)
-                            : `${formatMoney(s.pricePerHour)}–${formatMoney(s.weekendPricePerHour)}`}{" "}
-                          / oră
+                            ? money(s.pricePerHour)
+                            : `${money(s.pricePerHour)}–${money(s.weekendPricePerHour)}`}{" "}
+                          {t.perHour}
                         </span>
                       </span>
                     </button>
@@ -409,7 +421,7 @@ export function BookingDrawer() {
                       type="button"
                       onClick={() => shiftMonth(-1)}
                       disabled={!canPrevMonth}
-                      aria-label="Luna anterioară"
+                      aria-label={t.prevMonth}
                       className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-neutral-400 disabled:opacity-20 enabled:hover:bg-paper-deep enabled:hover:text-neutral-700"
                     >
                       <ChevronLeft size={18} />
@@ -439,7 +451,7 @@ export function BookingDrawer() {
                       type="button"
                       onClick={() => shiftMonth(1)}
                       disabled={!canNextMonth}
-                      aria-label="Luna următoare"
+                      aria-label={t.nextMonth}
                       className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-neutral-400 disabled:opacity-20 enabled:hover:bg-paper-deep enabled:hover:text-neutral-700"
                     >
                       <ChevronRight size={18} />
@@ -491,14 +503,13 @@ export function BookingDrawer() {
                   {/* One section per selected day, each with its own hourly grid */}
                   {dates.length === 0 && (
                     <p className="mt-8 text-sm text-neutral-500">
-                      Alege o zi, sau mai multe — aceeași oră se rezervă pe toate.
+                      {t.pickDayHint}
                     </p>
                   )}
 
                   {dates.length > 0 && (
                     <p className="mt-6 text-xs text-neutral-500">
-                      O oră de studio = 55 de minute de lucru. Ultimele 5 minute sunt pentru strângerea
-                      lucrurilor, ca următorii clienți să intre la timp.
+                      {t.hourNote}
                     </p>
                   )}
 
@@ -513,8 +524,7 @@ export function BookingDrawer() {
                         <div key={d} className="mt-9">
                           <div className="flex items-baseline justify-between border-b border-neutral-200 pb-2">
                             <p className="text-sm font-medium text-neutral-800">
-                              {DOW[dateObj.getDay()]}, {dateObj.getDate()} {MONTHS[dateObj.getMonth()]}{" "}
-                              {dateObj.getFullYear()}
+                              {dayHeading.format(dateObj)}
                             </p>
                             <p className="text-xs text-neutral-400">{tzLabel}</p>
                           </div>
@@ -545,7 +555,7 @@ export function BookingDrawer() {
                                         {t} — {sessionEndTime(t, 1)}
                                       </span>
                                       <span className={cn("text-xs", selected ? "text-white/80" : "text-neutral-400")}>
-                                        {selectable || selected ? formatMoney(dayRate) : "—"}
+                                        {selectable || selected ? money(dayRate) : "—"}
                                       </span>
                                     </button>
                                   );
@@ -555,10 +565,10 @@ export function BookingDrawer() {
                           {times.length > 0 && !loadingDay && (
                             <div className="mt-3 flex items-baseline justify-between rounded-2xl bg-neutral-50 px-4 py-3 text-sm">
                               <span className="text-neutral-500">
-                                {timeSummary} · {pluralRo(times.length, "oră", "ore")} × {formatMoney(dayRate)}
+                                {timeSummary} · {formatHours(times.length, locale)} × {money(dayRate)}
                               </span>
                               <span className="font-medium text-neutral-900">
-                                {formatMoney(dayRate * times.length)}
+                                {money(dayRate * times.length)}
                               </span>
                             </div>
                           )}
@@ -586,7 +596,7 @@ export function BookingDrawer() {
             <div className="border-t border-line bg-paper px-6 py-5 sm:px-8">
               {breakdown && breakdown.depositPercent < 100 && breakdown.dueAtStudio > 0 && (
                 <p className="mb-2 text-xs text-ink-faint">
-                  + {formatMoney(breakdown.dueAtStudio)} la studio
+                  {fmt(t.dueAtStudio, { amount: money(breakdown.dueAtStudio) })}
                 </p>
               )}
               {step === 3 && (
@@ -607,25 +617,25 @@ export function BookingDrawer() {
                   className="flex h-14 w-full items-center justify-center rounded-full bg-accent text-[0.75rem] font-medium uppercase tracking-[0.18em] text-white transition-colors hover:bg-accent-soft disabled:opacity-30"
                 >
                   {dates.length === 0
-                    ? "Alege o zi"
+                    ? t.ctaPickDay
                     : times.length === 0
-                      ? "Alege o oră"
-                      : `Continuă cu ${timeSummary}`}
+                      ? t.ctaPickTime
+                      : fmt(t.ctaContinue, { time: timeSummary ?? "" })}
                 </button>
               )}
               {step === 2 && breakdown && times.length > 0 && (
                 <div className="mt-3 flex items-baseline justify-between gap-4 text-sm">
                   <span className="text-ink-faint">
-                    Total · {pluralRo(times.length, "oră", "ore")}
-                    {dates.length > 1 && ` × ${pluralRo(dates.length, "zi", "zile")}`}
+                    {t.total} · {formatHours(times.length, locale)}
+                    {dates.length > 1 && ` × ${plural(locale, dates.length, dict.units.day)}`}
                   </span>
                   <span className="font-serif text-2xl tracking-tight">
-                    {formatMoney(breakdown.total)}
+                    {money(breakdown.total)}
                   </span>
                 </div>
               )}
               <p className="mt-3 text-center text-xs text-ink-faint">
-                Plata se face prin MIA (Plăți Instant) sau direct la studio.
+                {t.footerNote}
               </p>
             </div>
           </motion.aside>

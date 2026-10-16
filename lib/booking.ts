@@ -2,6 +2,7 @@
  * Booking domain logic — pure, framework-free, shared by client + server.
  */
 import { site } from "@/lib/site";
+import { defaultLocale, getDictionary, plural, type Locale } from "@/lib/i18n";
 import { studios, addOnById, type StudioSlug } from "@/lib/studios";
 
 export type TimeSlot = {
@@ -41,25 +42,24 @@ export function generateDaySlots(): TimeSlot[] {
 
 export const durationOptions = site.booking.durations;
 
-/** "800 lei", "12 800 lei" — thousands grouped with a non-breaking space. */
-export function formatMoney(amount: number): string {
+/** "800 lei" / "800 лей" / "800 MDL" — thousands grouped with a non-breaking space. */
+export function formatMoney(amount: number, locale: Locale = defaultLocale): string {
   const digits = Math.round(amount)
     .toString()
     .replace(/\B(?=(\d{3})+(?!\d))/g, " ");
-  return `${digits} ${site.booking.currencySymbol}`;
+  return `${digits} ${getDictionary(locale).currency}`;
 }
 
-/** Romanian count + noun: "1 oră", "3 ore", "20 de ore". */
-export function pluralRo(n: number, one: string, many: string): string {
-  if (n === 1) return `1 ${one}`;
-  const rest = n % 100;
-  return n >= 20 && (rest === 0 || rest >= 20) ? `${n} de ${many}` : `${n} ${many}`;
+/** "3 ore" / "3 часа" / "3 hours". */
+export function formatHours(n: number, locale: Locale = defaultLocale): string {
+  return plural(locale, n, getDictionary(locale).units.hour);
 }
 
-/** "24 de ore" / "30 de minute" — how long an unpaid MIA booking is held. */
-export function miaHoldLabel(): string {
+/** "24 de ore" / "24 часа" / "24 hours" — how long an unpaid MIA booking is held. */
+export function miaHoldLabel(locale: Locale = defaultLocale): string {
   const m = site.booking.miaHoldMinutes;
-  return m % 60 === 0 ? pluralRo(m / 60, "oră", "ore") : pluralRo(m, "minut", "minute");
+  const { units } = getDictionary(locale);
+  return m % 60 === 0 ? plural(locale, m / 60, units.hour) : plural(locale, m, units.minute);
 }
 
 /** Is this local date (YYYY-MM-DD) a weekend per site config? */

@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
-import { houseRules } from "@/lib/rules";
 import type { PaymentMethod } from "@/lib/booking";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 export type CustomerFields = { name: string; email: string; phone: string };
 
@@ -32,6 +32,8 @@ export function BookingForm({
   onSubmit: () => void;
   error: string | null;
 }) {
+  const { t: dict } = useI18n();
+  const t = dict.booking.form;
   const rulesRef = useRef<HTMLDivElement>(null);
   const [hasReadRules, setHasReadRules] = useState(false);
 
@@ -56,7 +58,7 @@ export function BookingForm({
     >
       <div>
         <label htmlFor="bf-name" className="eyebrow">
-          Numele tău
+          {t.name}
         </label>
         <input
           id="bf-name"
@@ -64,7 +66,7 @@ export function BookingForm({
           value={values.name}
           onChange={(e) => onChange({ ...values, name: e.target.value })}
           autoComplete="name"
-          placeholder="Ana Popescu"
+          placeholder={t.namePlaceholder}
           required
           minLength={2}
         />
@@ -73,7 +75,7 @@ export function BookingForm({
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label htmlFor="bf-phone" className="eyebrow">
-            Telefon
+            {t.phone}
           </label>
           <input
             id="bf-phone"
@@ -89,7 +91,7 @@ export function BookingForm({
 
         <div>
           <label htmlFor="bf-email" className="eyebrow">
-            Email
+            {t.email}
           </label>
           <input
             id="bf-email"
@@ -98,19 +100,19 @@ export function BookingForm({
             value={values.email}
             onChange={(e) => onChange({ ...values, email: e.target.value })}
             autoComplete="email"
-            placeholder="tu@email.com"
+            placeholder={t.emailPlaceholder}
             required
           />
         </div>
       </div>
 
       <fieldset className="pt-2">
-        <legend className="eyebrow">Cum plătești</legend>
+        <legend className="eyebrow">{t.howToPay}</legend>
         <div className="mt-2 grid gap-2.5 sm:grid-cols-2">
           {(
             [
-              ["mia", "MIA"],
-              ["onsite", "La studio"],
+              ["mia", t.mia],
+              ["onsite", t.onsite],
             ] as const
           ).map(([value, label]) => (
             <label
@@ -137,14 +139,14 @@ export function BookingForm({
       </fieldset>
 
       <div className="pt-2">
-        <p className="eyebrow">Regulile casei</p>
+        <p className="eyebrow">{t.rules}</p>
         <div
           ref={rulesRef}
           onScroll={checkScrolled}
           className="mt-2 max-h-48 overflow-y-auto border border-line p-4 text-sm text-ink-soft"
         >
           <ol className="space-y-3">
-            {houseRules.map((rule, i) => (
+            {dict.rules.map((rule, i) => (
               <li key={rule.title}>
                 <span className="font-medium text-ink">
                   {i + 1}. {rule.title}.
@@ -156,7 +158,7 @@ export function BookingForm({
         </div>
         {!hasReadRules && (
           <p className="mt-1.5 text-xs text-ink-faint">
-            Derulează până la final ca să poți continua.
+            {t.scrollHint}
           </p>
         )}
       </div>
@@ -174,7 +176,7 @@ export function BookingForm({
           disabled={!hasReadRules}
           onChange={(e) => onTermsChange(e.target.checked)}
         />
-        <span>Am citit și sunt de acord cu regulile casei.</span>
+        <span>{t.agree}</span>
       </label>
 
       {error && (
@@ -185,7 +187,7 @@ export function BookingForm({
 
       {/* Submitted from the sticky button below — Enter key still works. */}
       <button type="submit" className="sr-only">
-        Rezervă
+        {t.submit}
       </button>
     </form>
   );

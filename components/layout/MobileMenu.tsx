@@ -10,18 +10,19 @@ import { Logo } from "@/components/ui/Logo";
 import { Button } from "@/components/ui/Button";
 import { useBookingDrawer } from "@/components/booking/BookingDrawerContext";
 import { useStudioDetails } from "@/components/sections/StudioDetailsContext";
+import { useI18n } from "@/components/i18n/I18nProvider";
+import { LanguageSwitcher } from "@/components/i18n/LanguageSwitcher";
 
 const ease = [0.22, 1, 0.36, 1] as const;
-
-const legal = [
-  { label: "Termeni", href: "/legal/terms" },
-  { label: "Confidențialitate", href: "/legal/privacy" },
-  { label: "Anulare", href: "/legal/cancellation" },
-];
 
 export function MobileMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { openBooking } = useBookingDrawer();
   const { openDetails } = useStudioDetails();
+  const { t, path } = useI18n();
+  const legal = (["terms", "privacy", "cancellation"] as const).map((doc) => ({
+    label: t.legalLinks[doc],
+    href: path(`/legal/${doc}`),
+  }));
 
   const seeStudio = (slug: (typeof studios)[number]["slug"]) => () => {
     onClose();
@@ -51,7 +52,7 @@ export function MobileMenu({ open, onClose }: { open: boolean; onClose: () => vo
         <>
           <motion.button
             type="button"
-            aria-label="Închide meniul"
+            aria-label={t.nav.closeMenu}
             className="fixed inset-0 z-[55] bg-black/45"
             onClick={onClose}
             initial={{ opacity: 0 }}
@@ -63,7 +64,7 @@ export function MobileMenu({ open, onClose }: { open: boolean; onClose: () => vo
             className="fixed inset-0 z-[60] flex w-full flex-col overflow-y-auto bg-paper sm:inset-y-0 sm:right-0 sm:left-auto sm:w-[420px] sm:max-w-[88vw]"
             role="dialog"
             aria-modal="true"
-            aria-label="Meniu"
+            aria-label={t.nav.menu}
             initial={{ x: "100%" }}
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
@@ -73,7 +74,7 @@ export function MobileMenu({ open, onClose }: { open: boolean; onClose: () => vo
               <Logo />
               <button
                 onClick={onClose}
-                aria-label="Închide"
+                aria-label={t.nav.close}
                 className="grid h-10 w-10 place-items-center rounded-full text-ink-soft hover:bg-paper-deep hover:text-ink"
               >
                 <X size={22} strokeWidth={1.5} />
@@ -100,8 +101,10 @@ export function MobileMenu({ open, onClose }: { open: boolean; onClose: () => vo
                   onClick={bookNow}
                   className="flex h-14 w-full items-center justify-center rounded-full bg-ink text-[0.72rem] font-medium uppercase tracking-[0.18em] text-paper"
                 >
-                  Rezervă un studio
+                  {t.nav.bookStudio}
                 </button>
+
+                <LanguageSwitcher className="mt-6 -ml-1.5" />
 
                 <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-[0.7rem] uppercase tracking-[0.14em] text-ink-faint">
                   <span>© 2026 {site.name}</span>

@@ -12,16 +12,18 @@ import {
 } from "@/lib/booking";
 import type { BookingRow, BookingAddOn } from "@/lib/supabase/types";
 
+/** The slot is taken (or the date has passed). The API route words it per language. */
 export class BookingConflictError extends Error {
-  constructor(msg = "Acest interval orar nu mai este disponibil.") {
-    super(msg);
+  constructor(readonly reason: "taken" | "past" = "taken") {
+    super(reason === "past" ? "Date has passed" : "Slot no longer available");
     this.name = "BookingConflictError";
   }
 }
 
+/** The date needs a longer booking than requested. */
 export class BookingRequestError extends Error {
-  constructor(msg: string) {
-    super(msg);
+  constructor(readonly minHours: number) {
+    super(`Minimum booking is ${minHours}h`);
     this.name = "BookingRequestError";
   }
 }
@@ -152,14 +154,12 @@ export async function createHold(input: CreateHoldInput): Promise<HoldResult> {
   const endTime = endTimeFor(input.startTime, input.durationHours);
 
   if (input.date < localDateString(new Date())) {
-    throw new BookingConflictError("Această dată a trecut.");
+    throw new BookingConflictError("past");
   }
 
   const minHours = minHoursForDate(input.slug, input.date);
   if (input.durationHours < minHours) {
-    throw new BookingRequestError(
-      `Această dată necesită o rezervare minimă de ${minHours} ${minHours > 1 ? "ore" : "oră"}.`,
-    );
+    throw new BookingRequestError(minHours);
   }
 
   const existing = await getBookedRanges(input.slug, input.date);
