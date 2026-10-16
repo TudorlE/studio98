@@ -11,9 +11,6 @@ export const site = {
   legalName: "Studio 98 SRL",
   // No trailing slash — callers append paths ("/legal/terms").
   domain: (process.env.NEXT_PUBLIC_SITE_URL || "https://www.98.studio").replace(/\/+$/, ""),
-  tagline: "Studiouri pentru fotografie și film",
-  description:
-    "Două studiouri în centrul orașului — pentru fotografie, film și evenimente. Rezervare la oră.",
   contact: {
     // TODO: replace all contact details with real ones
     phone: "+373 00 000 000",
@@ -47,7 +44,6 @@ export const site = {
     // Minimum lead time in hours before a slot can be booked.
     minLeadHours: 2,
     currency: "MDL",
-    currencySymbol: "lei",
     durations: [1, 2, 3, 4, 5, 6],
     // Days that use the weekend rate + weekend minimum (0 = Sunday … 6 = Saturday).
     weekendDays: [6, 0],

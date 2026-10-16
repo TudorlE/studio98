@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { studioSlugs, studioAddOns } from "@/lib/studios";
 import { site } from "@/lib/site";
+import { defaultLocale, locales } from "@/lib/i18n/config";
 
 const addOnIds = studioAddOns.map((a) => a.id);
 
@@ -41,6 +42,8 @@ export const createBookingSchema = z.object({
     phone: z.string().min(6).max(40),
   }),
   paymentMethod: z.enum(["mia", "onsite"]).optional().default("mia"),
+  /** Language the client booked in — wording of errors, the email and the confirmation link. */
+  locale: z.enum(locales).optional().default(defaultLocale),
   termsAccepted: z.literal(true, {
     message: "Trebuie să accepți regulile rezervării.",
   }),

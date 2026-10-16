@@ -1,11 +1,14 @@
 import { ImageResponse } from "next/og";
 import { site } from "@/lib/site";
+import { getDictionary, isLocale, defaultLocale } from "@/lib/i18n";
 
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
-export const alt = `${site.name} — ${site.tagline}`;
+export const alt = site.name;
 
-export default function OgImage() {
+export default async function OgImage({ params }: { params: Promise<{ lang: string }> }) {
+  const { lang } = await params;
+  const t = getDictionary(isLocale(lang) ? lang : defaultLocale).meta;
   return new ImageResponse(
     (
       <div
@@ -25,9 +28,9 @@ export default function OgImage() {
           {site.name}
         </div>
         <div style={{ fontSize: 96, lineHeight: 1, maxWidth: 900 }}>
-          Spațiu pentru următoarea ta creație.
+          {t.ogHeadline}
         </div>
-        <div style={{ fontSize: 26, color: "#6f6f6a" }}>{site.tagline}</div>
+        <div style={{ fontSize: 26, color: "#6f6f6a" }}>{t.tagline}</div>
       </div>
     ),
     size,

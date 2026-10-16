@@ -9,7 +9,8 @@
  * site's design tokens in app/globals.css.
  */
 import { site } from "@/lib/site";
-import { miaHoldLabel, pluralRo } from "@/lib/booking";
+import { formatHours, formatMoney, miaHoldLabel } from "@/lib/booking";
+import { fmt, formatLongDate, getDictionary, localeLabel, localePath, type Locale } from "@/lib/i18n";
 
 export type BookingConfirmationEmail = {
   to: string;
@@ -21,13 +22,16 @@ export type BookingConfirmationEmail = {
   startTime: string;
   endTime: string;
   durationHours: number;
+  /** Language the client booked in — their email is written in it. */
+  locale: Locale;
+  /** Amounts in lei. */
   payment:
     /** Whole amount via MIA, now — held until the admin confirms it arrived. */
-    | { kind: "mia_full"; total: string }
+    | { kind: "mia_full"; total: number }
     /** Long pay-at-studio booking — held until the MIA advance arrives. */
-    | { kind: "mia_advance"; total: string; advance: string; balance: string }
+    | { kind: "mia_advance"; total: number; advance: number; balance: number }
     /** Short pay-at-studio booking — confirmed, everything paid at the studio. */
-    | { kind: "onsite"; total: string };
+    | { kind: "onsite"; total: number };
 };
 
 const c = {
@@ -47,19 +51,6 @@ function esc(s: string): string {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
-}
-
-/** "2026-10-16" → "vineri, 16 octombrie 2026" */
-function formatDateRo(iso: string): string {
-  const d = new Date(`${iso}T12:00:00Z`);
-  if (Number.isNaN(d.getTime())) return iso;
-  return new Intl.DateTimeFormat("ro-RO", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-    timeZone: "UTC",
-  }).format(d);
 }
 
 const eyebrow = (text: string, color = c.inkSoft) =>
@@ -89,50 +80,62 @@ const link = (href: string, label: string) =>
   `<a href="${esc(href)}" target="_blank" style="color:${c.accent};text-decoration:underline;">${esc(label)}</a>`;
 
 export function renderBookingConfirmation(data: BookingConfirmationEmail) {
+  const { locale, payment } = data;
+  const dict = getDictionary(locale);
+  const t = dict.email;
+  const r = t.rows;
   const base = site.domain;
+  const home = `${base}${localePath(locale)}`;
   const { mia } = site.booking;
-  const { payment } = data;
+  const money = (n: number) => formatMoney(n, locale);
+  const hold = miaHoldLabel(locale);
   const awaitingMia = payment.kind !== "onsite";
   const firstName = data.customerName.trim().split(/\s+/)[0] || data.customerName;
-  const dateLabels = data.dates.map(formatDateRo);
+  const dateLabels = data.dates.map((d) => formatLongDate(locale, d));
   const miaDue =
-    payment.kind === "mia_full" ? payment.total : payment.kind === "mia_advance" ? payment.advance : null;
-
-  const subject = awaitingMia
-    ? `Rezervare înregistrată — ${data.studioName}, ${dateLabels[0]}`
-    : `Rezervare confirmată — ${data.studioName}, ${dateLabels[0]}`;
-
-  const status = awaitingMia ? "Rezervare înregistrată" : "Rezervare confirmată";
-  const intro =
     payment.kind === "mia_full"
-      ? `Îți mulțumim că ai ales ${site.name}. Intervalul tău este păstrat — rezervarea se confirmă imediat ce primim plata de ${miaDue} prin MIA (Plăți Instant).`
+      ? money(payment.total)
       : payment.kind === "mia_advance"
-        ? `Îți mulțumim că ai ales ${site.name}. Intervalul tău este păstrat — rezervarea se confirmă imediat ce primim avansul de ${miaDue} prin MIA (Plăți Instant). Restul sumei se achită la studio.`
-        : `Îți mulțumim că ai ales ${site.name}. Rezervarea ta este confirmată — te așteptăm la studio. Plata se face pe loc, în ziua ședinței.`;
+        ? money(payment.advance)
+        : null;
+
+  const subject = fmt(awaitingMia ? t.subjectRegistered : t.subjectConfirmed, {
+    studio: data.studioName,
+    date: dateLabels[0],
+  });
+  const status = awaitingMia ? t.statusRegistered : t.statusConfirmed;
+  const intro = fmt(
+    payment.kind === "mia_full" ? t.introFull : payment.kind === "mia_advance" ? t.introAdvance : t.introOnsite,
+    { site: site.name, amount: miaDue ?? "" },
+  );
+  const thanks = fmt(t.thanks, { name: firstName });
+  const deadline = fmt(t.deadline, { hold });
+  const cancelUrl = `${base}${localePath(locale, "/legal/cancellation")}`;
 
   // Values are plain text; multiple dates are joined with a line break when rendered.
   const details: [string, string[]][] = [
-    ["Studio", [data.studioName]],
-    [data.dates.length > 1 ? "Date" : "Data", dateLabels],
-    ["Ora", [`${data.startTime} – ${data.endTime}`]],
-    ["Durată", [pluralRo(data.durationHours, "oră", "ore") + (data.dates.length > 1 ? " / zi" : "")]],
+    [r.studio, [data.studioName]],
+    [data.dates.length > 1 ? r.dates : r.date, dateLabels],
+    [r.time, [`${data.startTime} – ${data.endTime}`]],
+    [r.duration, [formatHours(data.durationHours, locale) + (data.dates.length > 1 ? r.perDay : "")]],
   ];
   const paymentRows: [string, string[]][] =
     payment.kind === "mia_full"
       ? [
-          ["Total", [payment.total]],
-          ["Metodă de plată", ["MIA (Plăți Instant)"]],
+          [r.total, [money(payment.total)]],
+          [r.method, [r.methodMia]],
         ]
       : payment.kind === "mia_advance"
         ? [
-            ["Total", [payment.total]],
-            [`Avans ${site.booking.onsiteAdvancePercent}% prin MIA`, [payment.advance]],
-            ["Rest de achitat la studio", [payment.balance]],
+            [r.total, [money(payment.total)]],
+            [fmt(r.advance, { percent: site.booking.onsiteAdvancePercent }), [money(payment.advance)]],
+            [r.balance, [money(payment.balance)]],
           ]
         : [
-            ["Total", [payment.total]],
-            ["Metodă de plată", ["La studio, în ziua ședinței"]],
+            [r.total, [money(payment.total)]],
+            [r.method, [r.methodOnsite]],
           ];
+  const strong = (v: string) => `<strong style="color:${c.ink};">${esc(v)}</strong>`;
 
   const miaBlock = miaDue
     ? `
@@ -141,16 +144,16 @@ export function renderBookingConfirmation(data: BookingConfirmationEmail) {
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid ${c.ink};">
                 <tr>
                   <td align="center" style="padding:36px 24px;">
-                    ${eyebrow(payment.kind === "mia_advance" ? "Avans de achitat prin MIA" : "De achitat prin MIA", c.ink)}
+                    ${eyebrow(payment.kind === "mia_advance" ? t.miaDueAdvance : t.miaDue, c.ink)}
                     <div style="padding-top:10px;font-family:${font};font-size:40px;line-height:44px;font-weight:600;letter-spacing:-1px;color:${c.ink};">${esc(miaDue)}</div>
-                    <img src="${base}${mia.qrSrc}" width="180" height="180" alt="Cod QR MIA" style="display:block;margin:24px auto 0;width:180px;height:180px;border:0;">
+                    <img src="${base}${mia.qrSrc}" width="180" height="180" alt="${esc(t.qrAlt)}" style="display:block;margin:24px auto 0;width:180px;height:180px;border:0;">
                     <div style="padding:20px 0 0;font-family:${font};font-size:14px;line-height:22px;color:${c.inkSoft};">
-                      Scanează codul cu aplicația băncii tale sau apasă butonul de mai jos de pe telefon, apoi trimite suma de <strong style="color:${c.ink};">${esc(miaDue)}</strong> către <strong style="color:${c.ink};">${esc(mia.recipient)}</strong>.
+                      ${fmt(esc(t.miaInstructions), { amount: strong(miaDue), recipient: strong(mia.recipient) })}
                     </div>
                     <div style="padding:12px 0 0;font-family:${font};font-size:14px;line-height:22px;font-weight:600;color:${c.ink};">
-                      Ai ${miaHoldLabel()} să achiți — altfel rezervarea se anulează automat.
+                      ${esc(deadline)}
                     </div>
-                    <div style="padding-top:24px;">${button(mia.deepLink, "Deschide în MIA")}</div>
+                    <div style="padding-top:24px;">${button(mia.deepLink, t.openMia)}</div>
                   </td>
                 </tr>
               </table>
@@ -159,7 +162,7 @@ export function renderBookingConfirmation(data: BookingConfirmationEmail) {
     : "";
 
   const html = `<!doctype html>
-<html lang="ro">
+<html lang="${locale}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -179,8 +182,8 @@ export function renderBookingConfirmation(data: BookingConfirmationEmail) {
             <td style="padding:28px 40px;border-bottom:1px solid ${c.line};">
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                 <tr>
-                  <td><a href="${base}" target="_blank"><img src="${base}/logo.png" height="36" alt="${esc(site.name)}" style="display:block;height:36px;width:auto;border:0;"></a></td>
-                  <td align="right">${eyebrow("Confirmare rezervare")}</td>
+                  <td><a href="${home}" target="_blank"><img src="${base}/logo.png" height="36" alt="${esc(site.name)}" style="display:block;height:36px;width:auto;border:0;"></a></td>
+                  <td align="right">${eyebrow(t.headerEyebrow)}</td>
                 </tr>
               </table>
             </td>
@@ -190,7 +193,7 @@ export function renderBookingConfirmation(data: BookingConfirmationEmail) {
           <tr>
             <td style="padding:48px 40px 32px;">
               ${eyebrow(status, awaitingMia ? c.inkSoft : c.accent)}
-              <h1 style="margin:14px 0 0;font-family:${font};font-size:38px;line-height:42px;font-weight:600;letter-spacing:-1px;color:${c.ink};">Mulțumim, ${esc(firstName)}.</h1>
+              <h1 style="margin:14px 0 0;font-family:${font};font-size:38px;line-height:42px;font-weight:600;letter-spacing:-1px;color:${c.ink};">${esc(thanks)}</h1>
               <p style="margin:18px 0 0;font-family:${font};font-size:15px;line-height:24px;color:${c.inkSoft};">${esc(intro)}</p>
             </td>
           </tr>
@@ -198,7 +201,7 @@ ${miaBlock}
           <!-- Booking details -->
           <tr>
             <td style="padding:40px 40px 0;">
-              ${eyebrow("Detaliile rezervării", c.ink)}
+              ${eyebrow(t.detailsTitle, c.ink)}
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:10px;border-top:1px solid ${c.line};">${rows(details)}
               </table>
             </td>
@@ -207,7 +210,7 @@ ${miaBlock}
           <!-- Payment -->
           <tr>
             <td style="padding:36px 40px 0;">
-              ${eyebrow("Plată", c.ink)}
+              ${eyebrow(t.paymentTitle, c.ink)}
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:10px;border-top:1px solid ${c.line};">${rows(paymentRows)}
               </table>
             </td>
@@ -216,22 +219,22 @@ ${miaBlock}
           <!-- Location -->
           <tr>
             <td style="padding:36px 40px 0;">
-              ${eyebrow("Locație", c.ink)}
+              ${eyebrow(t.locationTitle, c.ink)}
               <p style="margin:12px 0 0;font-family:${font};font-size:15px;line-height:24px;color:${c.ink};">
                 ${esc(site.contact.address.line1)}<br>${esc(site.contact.address.line2)}
               </p>
-              <p style="margin:8px 0 0;font-family:${font};font-size:14px;line-height:22px;">${link(site.contact.mapsDirectionsUrl, "Indicații rutiere →")}</p>
+              <p style="margin:8px 0 0;font-family:${font};font-size:14px;line-height:22px;">${link(site.contact.mapsDirectionsUrl, t.route)}</p>
             </td>
           </tr>
 
           <!-- Good to know -->
           <tr>
             <td style="padding:36px 40px 0;">
-              ${eyebrow("Bine de știut", c.ink)}
+              ${eyebrow(t.goodToKnow, c.ink)}
               <ul style="margin:12px 0 0;padding:0 0 0 18px;font-family:${font};font-size:14px;line-height:22px;color:${c.inkSoft};">
-                <li style="margin-bottom:6px;">Te rugăm să ajungi cu câteva minute mai devreme — ora rezervată include pregătirea și strângerea decorului.</li>
-                <li style="margin-bottom:6px;">Pentru modificări sau anulare, scrie-ne cât mai devreme. Detalii în ${link(`${base}/legal/cancellation`, "politica de anulare")}.</li>
-                <li>Regulile casei le găsești pe ${link(base, "site")}.</li>
+                <li style="margin-bottom:6px;">${esc(t.tipArrive)}</li>
+                <li style="margin-bottom:6px;">${fmt(esc(t.tipCancel), { link: link(cancelUrl, t.cancelLinkText) })}</li>
+                <li>${fmt(esc(t.tipRules), { link: link(home, t.siteLinkText) })}</li>
               </ul>
             </td>
           </tr>
@@ -242,7 +245,7 @@ ${miaBlock}
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid ${c.line};">
                 <tr>
                   <td style="padding-top:24px;font-family:${font};font-size:14px;line-height:22px;color:${c.inkSoft};">
-                    Ai întrebări? Suntem aici:<br>
+                    ${esc(t.questions)}<br>
                     <a href="${esc(site.contact.phoneHref)}" style="color:${c.ink};text-decoration:none;">${esc(site.contact.phone)}</a>
                     &nbsp;·&nbsp;
                     <a href="${esc(site.contact.emailHref)}" style="color:${c.ink};text-decoration:none;">${esc(site.contact.email)}</a>
@@ -257,7 +260,7 @@ ${miaBlock}
         <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:600px;">
           <tr>
             <td align="center" style="padding:24px 40px 0;font-family:${font};font-size:12px;line-height:18px;color:${c.inkFaint};">
-              ${esc(site.name)} · ${esc(site.tagline)}<br>
+              ${esc(site.name)} · ${esc(dict.meta.tagline)}<br>
               ${esc(site.contact.address.line1)}, ${esc(site.contact.address.line2)}
             </td>
           </tr>
@@ -271,32 +274,32 @@ ${miaBlock}
   const text = [
     `${status.toUpperCase()} — ${site.name}`,
     ``,
-    `Mulțumim, ${firstName}.`,
+    thanks,
     intro,
     ``,
     ...(miaDue
       ? [
-          `DE ACHITAT PRIN MIA: ${miaDue}`,
-          `  Destinatar:   ${mia.recipient}`,
-          `  Deschide MIA: ${mia.deepLink}`,
-          `  Ai ${miaHoldLabel()} să achiți — altfel rezervarea se anulează automat.`,
+          fmt(t.textMiaDue, { amount: miaDue }),
+          `  ${t.textRecipient}: ${mia.recipient}`,
+          `  ${t.textOpenMia}: ${mia.deepLink}`,
+          `  ${deadline}`,
           ``,
         ]
       : []),
-    `DETALIILE REZERVĂRII`,
+    t.detailsTitle.toUpperCase(),
     ...details.map(([l, v]) => `  ${l}: ${v.join("; ")}`),
     ``,
-    `PLATĂ`,
+    t.paymentTitle.toUpperCase(),
     ...paymentRows.map(([l, v]) => `  ${l}: ${v.join("; ")}`),
     ``,
-    `LOCAȚIE`,
+    t.locationTitle.toUpperCase(),
     `  ${site.contact.address.line1}, ${site.contact.address.line2}`,
-    `  Indicații rutiere: ${site.contact.mapsDirectionsUrl}`,
+    `  ${t.route.replace(/\s*→$/, "")}: ${site.contact.mapsDirectionsUrl}`,
     ``,
-    `Te rugăm să ajungi cu câteva minute mai devreme.`,
-    `Politica de anulare: ${base}/legal/cancellation`,
+    t.textArrive,
+    fmt(t.textCancel, { url: cancelUrl }),
     ``,
-    `Întrebări? ${site.contact.phone} · ${site.contact.email}`,
+    fmt(t.textQuestions, { phone: site.contact.phone, email: site.contact.email }),
   ].join("\n");
 
   return { subject, html, text };
@@ -309,19 +312,21 @@ ${miaBlock}
 export function renderBookingNotification(data: BookingConfirmationEmail) {
   const base = site.domain;
   const { payment } = data;
-  const dateLabels = data.dates.map(formatDateRo);
+  // The studio's own alert stays in Romanian, whatever language the client used.
+  const money = (v: number) => formatMoney(v, "ro");
+  const dateLabels = data.dates.map((d) => formatLongDate("ro", d));
   const time = `${data.startTime} – ${data.endTime}`;
 
   const status =
     payment.kind === "mia_full"
-      ? `Așteaptă plata MIA de ${payment.total}`
+      ? `Așteaptă plata MIA de ${money(payment.total)}`
       : payment.kind === "mia_advance"
-        ? `Așteaptă avansul MIA de ${payment.advance}`
+        ? `Așteaptă avansul MIA de ${money(payment.advance)}`
         : "Confirmată — plata la studio";
   const action =
     payment.kind === "onsite"
       ? "Nu trebuie făcut nimic — rezervarea este deja confirmată."
-      : `Când banii apar în contul MIA, confirmă plata în CRM în ${miaHoldLabel()} — altfel rezervarea se șterge automat.`;
+      : `Când banii apar în contul MIA, confirmă plata în CRM în ${miaHoldLabel("ro")} — altfel rezervarea se șterge automat.`;
 
   const subject = `Rezervare nouă — ${data.studioName}, ${dateLabels[0]}, ${data.startTime}`;
 
@@ -329,17 +334,18 @@ export function renderBookingNotification(data: BookingConfirmationEmail) {
     ["Nume", [data.customerName]],
     ["Telefon", [data.customerPhone]],
     ["Email", [data.to]],
+    ["Limba clientului", [localeLabel[data.locale]]],
   ];
   const booking: [string, string[]][] = [
     ["Studio", [data.studioName]],
     [data.dates.length > 1 ? "Date" : "Data", dateLabels],
     ["Ora", [time]],
-    ["Durată", [pluralRo(data.durationHours, "oră", "ore") + (data.dates.length > 1 ? " / zi" : "")]],
-    ["Total", [payment.total]],
+    ["Durată", [formatHours(data.durationHours, "ro") + (data.dates.length > 1 ? " / zi" : "")]],
+    ["Total", [money(payment.total)]],
     ...(payment.kind === "mia_advance"
       ? ([
-          ["Avans MIA", [payment.advance]],
-          ["Rest la studio", [payment.balance]],
+          ["Avans MIA", [money(payment.advance)]],
+          ["Rest la studio", [money(payment.balance)]],
         ] as [string, string[]][])
       : []),
     ["Plată", [payment.kind === "onsite" ? "La studio" : payment.kind === "mia_full" ? "MIA integral" : "Avans MIA + rest la studio"]],

@@ -3,12 +3,13 @@ import { Footer } from "@/components/layout/Footer";
 import { Hero } from "@/components/sections/Hero";
 import { Directions } from "@/components/sections/Directions";
 import { site } from "@/lib/site";
+import { getDictionary, type Locale } from "@/lib/i18n";
 
-const jsonLd = {
+const jsonLd = (locale: Locale) => ({
   "@context": "https://schema.org",
   "@type": "LocalBusiness",
   name: site.name,
-  description: site.description,
+  description: getDictionary(locale).meta.description,
   url: site.domain,
   telephone: site.contact.phone,
   email: site.contact.email,
@@ -18,21 +19,22 @@ const jsonLd = {
     addressLocality: site.contact.address.line2,
     addressCountry: site.contact.address.country,
   },
-};
+});
 
-export default function Home() {
+export default async function Home({ params }: PageProps<"/[lang]">) {
+  const locale = (await params).lang as Locale;
   return (
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd(locale)) }}
       />
       <Header />
       <main className="flex-1">
         <Hero />
-        <Directions />
+        <Directions locale={locale} />
       </main>
-      <Footer />
+      <Footer locale={locale} />
     </>
   );
 }

@@ -10,19 +10,29 @@ import { isSupabaseConfigured } from "@/lib/supabase/admin";
 import { getBooking, studioName } from "@/lib/server/bookings";
 import { studios } from "@/lib/studios";
 import { formatMoney, miaHoldLabel, sessionEndTime } from "@/lib/booking";
+import { fmt, formatLongDate, getDictionary, localePath, type Locale } from "@/lib/i18n";
 
-export const metadata: Metadata = {
-  title: "Rezervare confirmată",
-  robots: { index: false, follow: false },
-};
+export async function generateMetadata({
+  params,
+}: PageProps<"/[lang]/booking/confirmation">): Promise<Metadata> {
+  const t = getDictionary((await params).lang as Locale);
+  return { title: t.confirmation.metaTitle, robots: { index: false, follow: false } };
+}
 
 export default async function ConfirmationPage({
+  params,
   searchParams,
-}: {
-  searchParams: Promise<{ booking?: string }>;
-}) {
-  const { booking: bookingParam } = await searchParams;
-  const bookingIds = (bookingParam ?? "").split(",").map((id) => id.trim()).filter(Boolean);
+}: PageProps<"/[lang]/booking/confirmation">) {
+  const locale = (await params).lang as Locale;
+  const t = getDictionary(locale).confirmation;
+  const money = (n: number) => formatMoney(n, locale);
+  const hold = miaHoldLabel(locale);
+  const bookingParam = (await searchParams).booking;
+  const bookingIds = (typeof bookingParam === "string" ? bookingParam : "")
+    .split(",")
+    .map((id) => id.trim())
+    .filter(Boolean);
+  const home = localePath(locale);
 
   let details: {
     studio: string;
@@ -59,19 +69,19 @@ export default async function ConfirmationPage({
         const onHold = rows.some((r) => r.booking_status === "hold");
         details = {
           studio: studioName(slug),
-          dates: rows.map((r) => r.date),
+          dates: rows.map((r) => formatLongDate(locale, r.date)),
           time: `${rows[0].start_time.slice(0, 5)} – ${sessionEndTime(rows[0].start_time.slice(0, 5), rows[0].duration)}`,
-          total: formatMoney(total),
-          paid: formatMoney(paidAmount || total),
+          total: money(total),
+          paid: money(paidAmount || total),
           paidAmount,
-          balance: balance > 0 ? formatMoney(balance) : null,
+          balance: balance > 0 ? money(balance) : null,
           settled: rows.every((r) => r.payment_status === "paid"),
           onsite: (provider === "onsite" || provider === "mia") && !onHold,
           miaAdvance:
             provider === "mia" && onHold
-              ? formatMoney(Math.round((total * site.booking.onsiteAdvancePercent) / 100))
+              ? money(Math.round((total * site.booking.onsiteAdvancePercent) / 100))
               : null,
-          miaFull: provider === "mia_full" && onHold ? formatMoney(total) : null,
+          miaFull: provider === "mia_full" && onHold ? money(total) : null,
         };
       }
     } catch {
@@ -86,7 +96,7 @@ export default async function ConfirmationPage({
     <>
       <header className="border-b border-line">
         <Container className="flex h-16 items-center sm:h-20">
-          <Link href="/" aria-label={site.name}>
+          <Link href={home} aria-label={site.name}>
             <Logo />
           </Link>
         </Container>
@@ -97,17 +107,14 @@ export default async function ConfirmationPage({
           {expired ? (
             <div className="flex flex-col items-center text-center">
               <h1 className="headline text-5xl leading-none tracking-tight sm:text-6xl">
-                Rezervare expirată.
+                {t.expiredTitle}
               </h1>
-              <p className="mt-5 max-w-prose text-ink-soft">
-                Plata nu a fost confirmată în {miaHoldLabel()}, așa că
-                intervalul a fost eliberat. Dacă ai plătit deja, scrie-ne și rezolvăm imediat.
-              </p>
+              <p className="mt-5 max-w-prose text-ink-soft">{fmt(t.expiredBody, { hold })}</p>
               <Link
-                href="/"
+                href={home}
                 className="mt-10 inline-flex h-12 items-center rounded-full bg-ink px-8 text-[0.7rem] font-medium uppercase tracking-[0.18em] text-paper transition-colors hover:bg-ink-soft"
               >
-                Rezervă din nou
+                {t.rebook}
               </Link>
             </div>
           ) : (
@@ -117,41 +124,39 @@ export default async function ConfirmationPage({
                   <Check size={20} strokeWidth={1.5} />
                 </div>
                 <h1 className="headline mt-8 text-5xl leading-none tracking-tight sm:text-6xl">
-                  {miaDue ? "Rezervare înregistrată." : "Rezervare confirmată."}
+                  {miaDue ? t.registered : t.confirmed}
                 </h1>
                 <p className="mt-5 max-w-prose text-ink-soft">
                   {details?.miaAdvance
-                    ? `Intervalul este păstrat pentru tine. Rezervarea se confirmă după ce primim avansul de ${details.miaAdvance} prin MIA (Plăți Instant). Ți-am trimis și un email de confirmare cu toate detaliile.`
+                    ? fmt(t.introAdvance, { amount: details.miaAdvance })
                     : details?.miaFull
-                      ? `Intervalul este păstrat pentru tine. Rezervarea se confirmă după ce primim plata de ${details.miaFull} prin MIA (Plăți Instant). Ți-am trimis și un email de confirmare cu toate detaliile.`
+                      ? fmt(t.introFull, { amount: details.miaFull })
                       : details?.onsite && details.paidAmount === 0
-                        ? "Te așteptăm! Plata se face la studio, în ziua ședinței. Un email de confirmare este pe drum."
+                        ? t.introOnsite
                         : details && !details.settled && !details.onsite && details.paidAmount === 0
-                          ? "Am primit rezervarea ta. Plata este încă în așteptare — verifică emailul pentru pașii următori."
-                          : "Un email de confirmare este pe drum. Te rugăm să ajungi cu câteva minute mai devreme."}
+                          ? t.introPending
+                          : t.introDefault}
                 </p>
               </div>
 
               {miaDue && (
                 <div className="mt-12 flex flex-col items-center border border-line p-6 text-center sm:p-10">
                   <p className="eyebrow">
-                    {details?.miaAdvance ? "Plătește avansul prin MIA" : "Plătește prin MIA"}
+                    {details?.miaAdvance ? t.payAdvance : t.payFull}
                   </p>
                   <p className="mt-3 font-serif text-4xl tracking-tight">{miaDue}</p>
                   <Image
                     src={site.booking.mia.qrSrc}
-                    alt="Cod QR MIA pentru plată"
+                    alt={t.qrAlt}
                     width={240}
                     height={240}
                     className="mt-6 h-48 w-48 sm:h-56 sm:w-56"
                   />
                   <p className="mt-6 max-w-sm text-sm text-ink-soft">
-                    Scanează codul cu aplicația băncii tale sau deschide MIA direct de pe telefon, apoi
-                    trimite suma de {miaDue} către {site.booking.mia.recipient}.
+                    {fmt(t.qrInstructions, { amount: miaDue, recipient: site.booking.mia.recipient })}
                   </p>
                   <p className="mt-3 max-w-sm text-sm font-medium text-ink">
-                    Ai {miaHoldLabel()} să achiți — altfel rezervarea se
-                    anulează automat.
+                    {fmt(t.deadline, { hold })}
                   </p>
                   <a
                     href={site.booking.mia.deepLink}
@@ -159,7 +164,7 @@ export default async function ConfirmationPage({
                     rel="noopener noreferrer"
                     className="mt-6 inline-flex h-12 items-center rounded-full bg-ink px-8 text-[0.7rem] font-medium uppercase tracking-[0.18em] text-paper transition-colors hover:bg-ink-soft"
                   >
-                    Deschide în MIA
+                    {t.openMia}
                   </a>
                 </div>
               )}
@@ -167,42 +172,39 @@ export default async function ConfirmationPage({
               <dl className="mt-12 divide-y divide-line border-y border-line text-sm">
                 {details ? (
                   <>
-                    <Line label="Studio" value={details.studio} />
+                    <Line label={t.studio} value={details.studio} />
                     <Line
-                      label={details.dates.length > 1 ? "Date" : "Data"}
-                      value={details.dates.join(", ")}
+                      label={details.dates.length > 1 ? t.dates : t.date}
+                      value={details.dates.join("; ")}
                     />
-                    <Line label="Ora" value={details.time} />
+                    <Line label={t.time} value={details.time} />
                     {miaDue ? (
                       <>
-                        <Line label="Total" value={details.total} />
+                        <Line label={t.total} value={details.total} />
                         {details.miaAdvance && (
-                          <Line label="Avans prin MIA" value={details.miaAdvance} />
+                          <Line label={t.advance} value={details.miaAdvance} />
                         )}
                       </>
                     ) : details.onsite && details.paidAmount === 0 ? (
-                      <Line label="Total" value={`${details.total} — se achită la studio`} />
+                      <Line label={t.total} value={fmt(t.totalOnsite, { total: details.total })} />
                     ) : (
                       <>
-                        <Line label={details.balance ? "Achitat" : "Total achitat"} value={details.paid} />
-                        {details.balance && <Line label="De achitat la studio" value={details.balance} />}
+                        <Line label={details.balance ? t.paid : t.totalPaid} value={details.paid} />
+                        {details.balance && <Line label={t.dueAtStudio} value={details.balance} />}
                       </>
                     )}
                   </>
                 ) : (
-                  <Line
-                    label="Status"
-                    value="Confirmată — toate detaliile au fost trimise pe email."
-                  />
+                  <Line label={t.status} value={t.statusValue} />
                 )}
               </dl>
 
               <div className="mt-12 flex justify-center">
                 <Link
-                  href="/"
+                  href={home}
                   className="inline-flex h-12 items-center rounded-full border border-ink/25 px-8 text-[0.7rem] font-medium uppercase tracking-[0.18em] transition-colors hover:bg-ink hover:text-paper"
                 >
-                  Înapoi acasă
+                  {t.backHome}
                 </Link>
               </div>
             </>
@@ -210,7 +212,7 @@ export default async function ConfirmationPage({
         </Container>
       </main>
 
-      <Footer />
+      <Footer locale={locale} />
     </>
   );
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createBookingSchema } from "@/lib/validation";
-import { formatMoney, onsiteAdvance, sessionEndTime } from "@/lib/booking";
+import { formatHours, onsiteAdvance, sessionEndTime } from "@/lib/booking";
+import { defaultLocale, fmt, formatLongDate, getDictionary, isLocale, localePath } from "@/lib/i18n";
 import { site } from "@/lib/site";
 import { isSupabaseConfigured } from "@/lib/supabase/admin";
 import {
@@ -27,12 +28,15 @@ export async function POST(req: NextRequest) {
 
   const parsed = createBookingSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json(
-      { error: "Te rugăm verifică formularul.", issues: parsed.error.issues },
-      { status: 400 },
-    );
+    const asked = (body as { locale?: string } | null)?.locale;
+    const t = getDictionary(isLocale(asked) ? asked : defaultLocale).api;
+    return NextResponse.json({ error: t.invalidForm, issues: parsed.error.issues }, { status: 400 });
   }
   const input = parsed.data;
+  const { locale } = input;
+  const t = getDictionary(locale).api;
+  const confirmationUrl = (ids: string[]) =>
+    `${localePath(locale, "/booking/confirmation")}?booking=${ids.join(",")}`;
   const slug = input.studio as StudioSlug;
   const currency = site.booking.currency;
   // What the client sees: the booked slot ends on the hour, but they leave 5 min before.
@@ -41,11 +45,7 @@ export async function POST(req: NextRequest) {
 
   if (!isSupabaseConfigured()) {
     return NextResponse.json(
-      {
-        error:
-          "Sistemul de rezervări nu este configurat încă. Adaugă datele Supabase pentru a activa rezervările reale.",
-        demo: true,
-      },
+      { error: t.notConfigured, demo: true },
       { status: 503 },
     );
   }
@@ -67,17 +67,17 @@ export async function POST(req: NextRequest) {
       held.push(hold);
     } catch (err) {
       await Promise.allSettled(held.map((h) => markBookingFailed(h.booking.id)));
+      const day = formatLongDate(locale, date);
       if (err instanceof BookingConflictError) {
-        return NextResponse.json(
-          { error: `${date}: ${err.message}`, conflict: true },
-          { status: 409 },
-        );
+        const msg = err.reason === "past" ? t.datePast : t.slotTaken;
+        return NextResponse.json({ error: `${day}: ${msg}`, conflict: true }, { status: 409 });
       }
       if (err instanceof BookingRequestError) {
-        return NextResponse.json({ error: `${date}: ${err.message}` }, { status: 422 });
+        const msg = fmt(t.minHours, { hours: formatHours(err.minHours, locale) });
+        return NextResponse.json({ error: `${day}: ${msg}` }, { status: 422 });
       }
       console.error("[bookings] createHold", err);
-      return NextResponse.json({ error: "Rezervarea nu a putut fi creată" }, { status: 500 });
+      return NextResponse.json({ error: t.createFailed }, { status: 500 });
     }
   }
 
@@ -95,7 +95,7 @@ export async function POST(req: NextRequest) {
     } catch (err) {
       console.error("[bookings] mia", err);
       await Promise.allSettled(bookingIds.map((id) => markBookingFailed(id)));
-      return NextResponse.json({ error: "Rezervarea nu a putut fi creată" }, { status: 500 });
+      return NextResponse.json({ error: t.createFailed }, { status: 500 });
     }
     try {
       await sendBookingConfirmation({
@@ -107,14 +107,15 @@ export async function POST(req: NextRequest) {
         startTime: input.startTime,
         endTime,
         durationHours: input.durationHours,
-        payment: { kind: "mia_full", total: formatMoney(total) },
+        locale,
+        payment: { kind: "mia_full", total },
       });
     } catch (err) {
       console.error("[bookings] mia email", err);
     }
     return NextResponse.json({
       bookingId: bookingIds[0],
-      confirmationUrl: `/booking/confirmation?booking=${bookingIds.join(",")}`,
+      confirmationUrl: confirmationUrl(bookingIds),
     });
   }
 
@@ -131,7 +132,7 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     console.error("[bookings] onsite", err);
     await Promise.allSettled(bookingIds.map((id) => markBookingFailed(id)));
-    return NextResponse.json({ error: "Rezervarea nu a putut fi creată" }, { status: 500 });
+    return NextResponse.json({ error: t.createFailed }, { status: 500 });
   }
   try {
     await sendBookingConfirmation({
@@ -145,19 +146,15 @@ export async function POST(req: NextRequest) {
       durationHours: input.durationHours,
       payment:
         advance > 0
-          ? {
-              kind: "mia_advance",
-              total: formatMoney(total),
-              advance: formatMoney(advance),
-              balance: formatMoney(total - advance),
-            }
-          : { kind: "onsite", total: formatMoney(total) },
+          ? { kind: "mia_advance", total, advance, balance: total - advance }
+          : { kind: "onsite", total },
+      locale,
     });
   } catch (err) {
     console.error("[bookings] onsite email", err);
   }
   return NextResponse.json({
     bookingId: bookingIds[0],
-    confirmationUrl: `/booking/confirmation?booking=${bookingIds.join(",")}`,
+    confirmationUrl: confirmationUrl(bookingIds),
   });
 }

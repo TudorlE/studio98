@@ -1,20 +1,21 @@
 import Link from "next/link";
+import { getDictionary, localePath, type Locale } from "@/lib/i18n";
 import { Container } from "@/components/ui/Container";
 import { Logo } from "@/components/ui/Logo";
 import { site } from "@/lib/site";
 
-const legal = [
-  { label: "Termeni", href: "/legal/terms" },
-  { label: "Confidențialitate", href: "/legal/privacy" },
-  { label: "Anulare", href: "/legal/cancellation" },
-];
+export function Footer({ locale }: { locale: Locale }) {
+  const t = getDictionary(locale);
+  const legal = (["terms", "privacy", "cancellation"] as const).map((doc) => ({
+    label: t.legalLinks[doc],
+    href: localePath(locale, `/legal/${doc}`),
+  }));
 
-export function Footer() {
   return (
     <footer className="border-t border-line bg-paper py-16 sm:py-20">
       <Container>
         <div className="flex flex-col gap-10 sm:flex-row sm:items-start sm:justify-between">
-          <Link href="/">
+          <Link href={localePath(locale)}>
             <Logo className="h-11 sm:h-12" />
           </Link>
 

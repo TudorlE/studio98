@@ -7,6 +7,8 @@ import { X } from "lucide-react";
 import { BookStudioButton } from "@/components/booking/BookStudioButton";
 import { formatMoney } from "@/lib/booking";
 import { studios, subtitleWordSpacing } from "@/lib/studios";
+import { fmt } from "@/lib/i18n";
+import { useI18n } from "@/components/i18n/I18nProvider";
 import { useStudioDetails } from "./StudioDetailsContext";
 
 /**
@@ -16,6 +18,7 @@ import { useStudioDetails } from "./StudioDetailsContext";
  */
 export function StudioDetails() {
   const { activeSlug, closeDetails } = useStudioDetails();
+  const { t, locale } = useI18n();
   const studio = studios.find((s) => s.slug === activeSlug) ?? null;
   const [photoIndex, setPhotoIndex] = useState(0);
   const [lastSlug, setLastSlug] = useState(activeSlug);
@@ -50,7 +53,7 @@ export function StudioDetails() {
       className="fixed inset-0 z-[70] overflow-hidden bg-night"
       role="dialog"
       aria-modal="true"
-      aria-label={`${studio.subtitle} — fotografii și detalii`}
+      aria-label={fmt(t.studio.photosAndDetails, { name: studio.subtitle })}
     >
       <div className="absolute inset-0">
         {/* Swipeable directly — drag the photo itself, not a separate gallery. */}
@@ -88,7 +91,7 @@ export function StudioDetails() {
           type="button"
           onClick={closeDetails}
           className="flex h-11 w-11 items-center justify-center rounded-full border border-paper/40 text-paper transition-colors hover:bg-paper hover:text-ink"
-          aria-label="Închide"
+          aria-label={t.nav.close}
         >
           <X size={20} strokeWidth={1.5} />
         </button>
@@ -96,7 +99,7 @@ export function StudioDetails() {
 
       <div className="on-night pointer-events-none relative z-[1] mx-auto flex h-full w-full max-w-[1600px] flex-col justify-end px-5 pb-14 text-paper sm:px-8 sm:pb-20 lg:px-14 lg:pb-24">
         <p className="text-[0.7rem] font-medium uppercase tracking-[0.18em] text-paper/75">
-          Studio {studio.index}
+          {fmt(t.studio.label, { index: studio.index })}
         </p>
 
         <h2
@@ -107,13 +110,16 @@ export function StudioDetails() {
         </h2>
 
         <p className="mt-4 text-sm text-paper/85 sm:text-base">
-          {studio.description} {formatMoney(studio.pricePerHour)} / oră.
+          {fmt(t.studio.priceLine, {
+            description: t.studio.descriptions[studio.slug],
+            price: formatMoney(studio.pricePerHour, locale),
+          })}
         </p>
 
         <div className="pointer-events-auto mt-8 inline-block">
           <BookStudioButton
             slug={studio.slug}
-            label={`Rezervă Studio ${studio.index}`}
+            label={fmt(t.studio.book, { index: studio.index })}
             tone="paper"
             onClick={closeDetails}
           />
