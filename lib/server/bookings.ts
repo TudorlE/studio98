@@ -10,7 +10,7 @@ import {
   minHoursForDate,
   priceBreakdown,
 } from "@/lib/booking";
-import type { BookingRow, BookingAddOn } from "@/lib/supabase/types";
+import type { BookingRow, BookingAddOn, PaymentMethod, PaymentRow } from "@/lib/supabase/types";
 
 /** The slot is taken (or the date has passed). The API route words it per language. */
 export class BookingConflictError extends Error {
@@ -250,12 +250,92 @@ export async function markBookingOnsite(
  */
 export async function confirmOnsiteAdvance(id: string, advanceAmount: number): Promise<void> {
   const db = getSupabaseAdmin();
-  const { error } = await db
+  const { data, error } = await db
     .from("bookings")
     .update({ booking_status: "confirmed", deposit_paid: advanceAmount })
     .eq("id", id)
-    .eq("booking_status", "hold");
+    .eq("booking_status", "hold")
+    .select("id");
   if (error) throw error;
+  if (data?.length && advanceAmount > 0) await recordPayment(id, advanceAmount, "mia");
+}
+
+// ---------------------------------------------------------------------------
+// Payments ledger (supabase/migrations/0002_payments.sql)
+// ---------------------------------------------------------------------------
+
+/** Postgres "relation does not exist" — the payments migration hasn't been run yet. */
+const isMissingTable = (err: { code?: string } | null) => err?.code === "42P01" || err?.code === "PGRST205";
+
+/**
+ * Log money received for a booking, then sync the booking's running total:
+ * `deposit_paid` = everything received, and `payment_status` = paid once it covers the price.
+ */
+export async function recordPayment(bookingId: string, amount: number, method: PaymentMethod): Promise<void> {
+  const db = getSupabaseAdmin();
+  const { data: booking, error: readErr } = await db
+    .from("bookings")
+    .select("*, studios(slug)")
+    .eq("id", bookingId)
+    .maybeSingle();
+  if (readErr) throw readErr;
+  if (!booking) return;
+  const b = booking as BookingRow & { studios: { slug: string } | null };
+
+  const { error: insertErr } = await db.from("payments").insert({
+    booking_id: b.id,
+    amount,
+    method,
+    customer_name: b.customer_name,
+    customer_email: b.customer_email,
+    customer_phone: b.customer_phone,
+    studio_name: b.studios ? studioName(b.studios.slug as StudioSlug) : null,
+    booking_date: b.date,
+    booking_start: b.start_time,
+  });
+  if (insertErr) {
+    // Before the migration runs, keep confirming bookings — just without the ledger row.
+    if (isMissingTable(insertErr)) return console.warn("[payments] table missing — run 0002_payments.sql");
+    throw insertErr;
+  }
+  await syncBookingPaid(b.id, Number(b.total_price));
+}
+
+async function syncBookingPaid(bookingId: string, total: number): Promise<void> {
+  const db = getSupabaseAdmin();
+  const { data, error } = await db.from("payments").select("amount").eq("booking_id", bookingId);
+  if (error) throw error;
+  const received = (data ?? []).reduce((sum, p) => sum + Number(p.amount), 0);
+  const { error: updErr } = await db
+    .from("bookings")
+    .update({
+      deposit_paid: received,
+      payment_status: received >= total && total > 0 ? "paid" : "pending",
+    })
+    .eq("id", bookingId);
+  if (updErr) throw updErr;
+}
+
+/** Admin: remove a payment entered by mistake. */
+export async function deletePayment(id: string): Promise<void> {
+  const db = getSupabaseAdmin();
+  const { data, error } = await db.from("payments").delete().eq("id", id).select("booking_id");
+  if (error) throw error;
+  const bookingId = data?.[0]?.booking_id as string | null | undefined;
+  if (!bookingId) return;
+  const { data: booking } = await db.from("bookings").select("total_price").eq("id", bookingId).maybeSingle();
+  if (booking) await syncBookingPaid(bookingId, Number(booking.total_price));
+}
+
+/** Every payment, newest first, or null when the payments table doesn't exist yet. */
+export async function listPayments(): Promise<PaymentRow[] | null> {
+  const db = getSupabaseAdmin();
+  const { data, error } = await db.from("payments").select("*").order("paid_at", { ascending: false });
+  if (error) {
+    if (isMissingTable(error)) return null;
+    throw error;
+  }
+  return (data ?? []) as PaymentRow[];
 }
 
 export async function markBookingFailed(id: string): Promise<void> {

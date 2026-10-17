@@ -62,6 +62,24 @@ export interface BlackoutRow {
   reason: string | null;
 }
 
+export type PaymentMethod = "mia" | "studio";
+
+export interface PaymentRow {
+  id: string;
+  booking_id: string | null;
+  amount: number;
+  method: PaymentMethod;
+  paid_at: string; // timestamptz
+  customer_name: string;
+  customer_email: string | null;
+  customer_phone: string | null;
+  studio_name: string | null;
+  booking_date: string | null;
+  booking_start: string | null;
+  note: string | null;
+  created_at: string;
+}
+
 export interface Database {
   public: {
     Tables: {
@@ -73,6 +91,7 @@ export interface Database {
       };
       bookings: { Row: BookingRow; Insert: Partial<BookingRow>; Update: Partial<BookingRow> };
       blackouts: { Row: BlackoutRow; Insert: Partial<BlackoutRow>; Update: Partial<BlackoutRow> };
+      payments: { Row: PaymentRow; Insert: Partial<PaymentRow>; Update: Partial<PaymentRow> };
     };
   };
 }
