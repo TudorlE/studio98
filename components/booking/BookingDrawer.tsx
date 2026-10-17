@@ -9,6 +9,7 @@ import { site } from "@/lib/site";
 import { studios, subtitleWordSpacing, type StudioSlug } from "@/lib/studios";
 import {
   addDays,
+  computeSlotStatuses,
   formatMoney,
   generateDaySlots,
   localDateString,
@@ -32,18 +33,7 @@ const emptyCustomer: CustomerFields = { name: "", email: "", phone: "" };
 type Step = 1 | 2 | 3;
 type DayStatus = "busy" | "full";
 
-/** Every slot must be free on every selected date to count as available. */
-function intersectStatuses(maps: Record<string, SlotStatus>[]): Record<string, SlotStatus> {
-  if (maps.length === 0) return {};
-  const result: Record<string, SlotStatus> = {};
-  for (const time of Object.keys(maps[0])) {
-    const values = maps.map((m) => m[time] ?? "closed");
-    result[time] = values.every((v) => v === "available")
-      ? "available"
-      : (values.find((v) => v !== "available") ?? "booked");
-  }
-  return result;
-}
+type Slots = Record<string, SlotStatus>;
 
 export function BookingDrawer() {
   const { isOpen, initialStudio, closeBooking } = useBookingDrawer();
@@ -78,9 +68,11 @@ export function BookingDrawer() {
   const [monthCursor, setMonthCursor] = useState(
     () => new Date(today.getFullYear(), today.getMonth(), 1),
   );
-  const [monthStatus, setMonthStatus] = useState<Record<string, DayStatus>>({});
+  // Tagged with the studio/month it was fetched for, so a stale month is never trusted.
+  const [month, setMonth] = useState<{ key: string; status: Record<string, DayStatus> } | null>(null);
+  const monthStatus = month?.status ?? {};
 
-  const [statuses, setStatuses] = useState<Record<string, SlotStatus> | null>(null);
+  const [statuses, setStatuses] = useState<Slots | null>(null);
   const [availabilityError, setAvailabilityError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
 
@@ -90,7 +82,9 @@ export function BookingDrawer() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  const abortRef = useRef<AbortController | null>(null);
+  // Per studio+day slot cache and in-flight requests, so revisiting a day is instant.
+  const slotCache = useRef(new Map<string, Slots>());
+  const inflight = useRef(new Map<string, Promise<Slots>>());
 
   // Fresh start every time the panel opens.
   useEffect(() => {
@@ -108,6 +102,8 @@ export function BookingDrawer() {
     setTerms(false);
     setPaymentMethod("mia");
     setSubmitError(null);
+    slotCache.current.clear();
+    inflight.current.clear();
   }, [isOpen, initialStudio, today]);
 
   // Lock page scroll + close on Escape while open.
@@ -127,6 +123,7 @@ export function BookingDrawer() {
   useEffect(() => {
     if (!isOpen || !studio) return;
     const ctrl = new AbortController();
+    const key = `${studio}|${monthCursor.getFullYear()}-${monthCursor.getMonth() + 1}`;
     const params = new URLSearchParams({
       studio,
       year: String(monthCursor.getFullYear()),
@@ -135,46 +132,73 @@ export function BookingDrawer() {
     fetch(`/api/availability/month?${params}`, { signal: ctrl.signal })
       .then((r) => (r.ok ? r.json() : null))
       .then((data: { status?: Record<string, DayStatus> } | null) => {
-        setMonthStatus(data?.status ?? {});
+        setMonth(data ? { key, status: data.status ?? {} } : null);
       })
-      .catch(() => setMonthStatus({}));
+      .catch(() => {});
     return () => ctrl.abort();
   }, [isOpen, studio, monthCursor]);
 
-  const loadAvailability = useCallback(
-    async (slug: StudioSlug, days: string[], signal: AbortSignal) => {
-      try {
-        const maps = await Promise.all(
-          days.map(async (day) => {
-            const params = new URLSearchParams({ studio: slug, date: day, duration: "1" });
-            const res = await fetch(`/api/availability?${params}`, { signal });
-            if (!res.ok) throw new Error("bad status");
-            const data: { slots: Record<string, SlotStatus> } = await res.json();
-            return [day, data.slots] as const;
-          }),
-        );
-        setStatuses(intersectStatuses(maps.map(([, m]) => m)));
-        setTimes((cur) =>
-          cur.length > 0 && cur.every((t) => maps.every(([, m]) => m[t] === "available")) ? cur : [],
-        );
-      } catch (err) {
-        if ((err as Error).name === "AbortError") return;
-        setAvailabilityError(t.loadError);
-        setStatuses(null);
-      }
-    },
-    [t.loadError],
-  );
+  /** One request per studio+day, shared by hover prefetch and the actual pick. */
+  const fetchSlots = useCallback((slug: StudioSlug, day: string): Promise<Slots> => {
+    const key = `${slug}|${day}`;
+    const pending = inflight.current.get(key);
+    if (pending) return pending;
+    const params = new URLSearchParams({ studio: slug, date: day, duration: "1" });
+    const req = fetch(`/api/availability?${params}`)
+      .then((res) => {
+        if (!res.ok) throw new Error("bad status");
+        return res.json() as Promise<{ slots: Slots }>;
+      })
+      .then((data) => {
+        slotCache.current.set(key, data.slots);
+        return data.slots;
+      })
+      .finally(() => inflight.current.delete(key));
+    inflight.current.set(key, req);
+    return req;
+  }, []);
+
+  const prefetchDay = (day: string) => {
+    if (studio && !slotCache.current.has(`${studio}|${day}`)) void fetchSlots(studio, day).catch(() => {});
+  };
+
+  const date = dates[0] ?? null;
 
   useEffect(() => {
-    if (!isOpen || !studio || dates.length === 0) return;
-    abortRef.current?.abort();
-    const ctrl = new AbortController();
-    abortRef.current = ctrl;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- keyed data fetch, state set after await
-    void loadAvailability(studio, dates, ctrl.signal);
-    return () => ctrl.abort();
-  }, [isOpen, studio, dates, reloadKey, loadAvailability]);
+    if (!isOpen || !studio || !date) return;
+    let live = true;
+    const key = `${studio}|${date}`;
+    const monthKey = `${studio}|${date.slice(0, 4)}-${Number(date.slice(5, 7))}`;
+    const cached = slotCache.current.get(key);
+
+    /* eslint-disable react-hooks/set-state-in-effect -- keyed data fetch */
+    setAvailabilityError(null);
+    if (cached) {
+      setStatuses(cached);
+    } else if (month?.key === monthKey && !month.status[date]) {
+      // No bookings on this day: render instantly, the server confirms below.
+      setStatuses(computeSlotStatuses({ date, durationHours: 1, bookedRanges: [] }));
+    } else {
+      setStatuses(null);
+    }
+    /* eslint-enable react-hooks/set-state-in-effect */
+
+    if (cached) return;
+    fetchSlots(studio, date)
+      .then((slots) => {
+        if (!live) return;
+        setStatuses(slots);
+        setTimes((cur) => (cur.every((t) => slots[t] === "available") ? cur : []));
+      })
+      .catch(() => {
+        if (!live) return;
+        setAvailabilityError(t.loadError);
+        setStatuses(null);
+      });
+    return () => {
+      live = false;
+    };
+  }, [isOpen, studio, date, month, reloadKey, fetchSlots, t.loadError]);
 
   const studioData = studios.find((s) => s.slug === studio) ?? null;
 
@@ -204,8 +228,9 @@ export function BookingDrawer() {
     setStep(2);
   };
 
+  /** One day per booking: tapping another day replaces it, tapping the same day clears it. */
   const toggleDate = (d: string) => {
-    setDates((cur) => (cur.includes(d) ? cur.filter((x) => x !== d) : [...cur, d].sort()));
+    setDates((cur) => (cur[0] === d ? [] : [d]));
     setTimes([]);
   };
 
@@ -261,6 +286,7 @@ export function BookingDrawer() {
         setSubmitError(data.error ?? t.errors.conflict);
         setTimes([]);
         setStep(2);
+        slotCache.current.clear();
         setReloadKey((k) => k + 1);
         return;
       }
@@ -458,7 +484,7 @@ export function BookingDrawer() {
                     </button>
                   </div>
 
-                  {/* Full month calendar grid — tap a day to add/remove it */}
+                  {/* Full month calendar grid — tap a day to pick it */}
                   <div className="mt-6 grid grid-cols-7 gap-y-1 text-center sm:gap-y-2">
                     {DOW.map((d) => (
                       <span
@@ -482,6 +508,8 @@ export function BookingDrawer() {
                           key={iso}
                           type="button"
                           disabled={disabled}
+                          onPointerEnter={() => prefetchDay(iso)}
+                          onPointerDown={() => prefetchDay(iso)}
                           onClick={() => toggleDate(iso)}
                           className="flex items-center justify-center py-0.5"
                         >
@@ -500,7 +528,7 @@ export function BookingDrawer() {
                     })}
                   </div>
 
-                  {/* One section per selected day, each with its own hourly grid */}
+                  {/* Hourly grid for the picked day */}
                   {dates.length === 0 && (
                     <p className="mt-8 text-sm text-neutral-500">
                       {t.pickDayHint}

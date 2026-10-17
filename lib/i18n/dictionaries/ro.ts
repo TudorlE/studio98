@@ -77,7 +77,7 @@ export const ro = {
     ],
     prevMonth: "Luna anterioară",
     nextMonth: "Luna următoare",
-    pickDayHint: "Alege o zi, sau mai multe — aceeași oră se rezervă pe toate.",
+    pickDayHint: "Alege ziua în care vrei să vii.",
     hourNote:
       "O oră de studio = 55 de minute de lucru. Ultimele 5 minute sunt pentru strângerea lucrurilor, ca următorii clienți să intre la timp.",
     loadError: "Nu am putut încărca orele disponibile. Încearcă din nou.",

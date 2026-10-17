@@ -42,7 +42,13 @@ export function Hero() {
         </div>
       </div>
 
-      <ButtonLink href={path("/legal/rules")} variant="solid" tone="accent" className="w-56 whitespace-nowrap">
+      {/* Mobile: mirror the top gap (eyebrow line 1.05rem + mt-6) so both buttons sit equally far from the tiles. */}
+      <ButtonLink
+        href={path("/legal/rules")}
+        variant="solid"
+        tone="accent"
+        className="mt-[2.55rem] w-56 whitespace-nowrap sm:mt-0"
+      >
         {t.hero.houseRules}
       </ButtonLink>
 

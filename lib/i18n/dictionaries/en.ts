@@ -72,7 +72,7 @@ export const en = {
     ],
     prevMonth: "Previous month",
     nextMonth: "Next month",
-    pickDayHint: "Pick one day or several — the same time is booked on each.",
+    pickDayHint: "Pick the day you want to come in.",
     hourNote:
       "One studio hour = 55 minutes of work. The last 5 minutes are for packing up, so the next guests can start on time.",
     loadError: "We couldn't load the available times. Please try again.",
