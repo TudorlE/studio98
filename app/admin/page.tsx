@@ -9,7 +9,9 @@ import { isSupabaseConfigured } from "@/lib/supabase/admin";
 import { listBookings, listPayments, type AdminBookingRow } from "@/lib/server/bookings";
 import type { PaymentRow } from "@/lib/supabase/types";
 import { AdminLoginForm } from "./AdminLoginForm";
+import { isCalendarConfigured } from "@/lib/server/google-calendar";
 import { ConfirmDeleteButton } from "./ConfirmDeleteButton";
+import { CalendarSyncButton } from "./CalendarSyncButton";
 import { confirmAdvance, logout, recordStudioPayment, removeBooking, removePayment } from "./actions";
 
 export const metadata: Metadata = {
@@ -182,14 +184,17 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
               așteptare · {formatMoney(paidTotal)} încasat
             </p>
           </div>
-          <form action={logout}>
-            <button
-              type="submit"
-              className="h-10 shrink-0 rounded-full border border-ink/25 px-5 text-[0.65rem] font-medium uppercase tracking-[0.14em] transition-colors hover:bg-ink hover:text-paper"
-            >
-              Ieși
-            </button>
-          </form>
+          <div className="flex shrink-0 items-center gap-2">
+            {isCalendarConfigured() && <CalendarSyncButton />}
+            <form action={logout}>
+              <button
+                type="submit"
+                className="h-10 shrink-0 rounded-full border border-ink/25 px-5 text-[0.65rem] font-medium uppercase tracking-[0.14em] transition-colors hover:bg-ink hover:text-paper"
+              >
+                Ieși
+              </button>
+            </form>
+          </div>
         </div>
 
         {/* Tabs + search */}

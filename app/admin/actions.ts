@@ -2,7 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { checkAdminPassword, clearAdminCookie, isAdminAuthed, setAdminCookie } from "@/lib/admin-auth";
-import { confirmOnsiteAdvance, deleteBooking, deletePayment, recordPayment } from "@/lib/server/bookings";
+import {
+  confirmOnsiteAdvance,
+  deleteBooking,
+  deletePayment,
+  recordPayment,
+  syncUpcomingToCalendar,
+} from "@/lib/server/bookings";
 
 export type LoginState = { error: string | null };
 
@@ -52,4 +58,18 @@ export async function removePayment(formData: FormData): Promise<void> {
   if (!id) return;
   await deletePayment(id);
   revalidatePath("/admin");
+}
+
+export type CalendarSyncState = { message: string | null };
+
+/** Push every upcoming confirmed booking to Google Calendar. */
+export async function syncCalendar(): Promise<CalendarSyncState> {
+  if (!(await isAdminAuthed())) return { message: null };
+  try {
+    const n = await syncUpcomingToCalendar();
+    return { message: n === 1 ? "1 rezervare sincronizată" : `${n} rezervări sincronizate` };
+  } catch (err) {
+    console.error("[calendar] sync all", err);
+    return { message: "Eroare — verifică setările Google Calendar" };
+  }
 }

@@ -1,5 +1,7 @@
 import "server-only";
+import { after } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { deleteEvent, isCalendarConfigured, upsertEvent } from "@/lib/server/google-calendar";
 import { site } from "@/lib/site";
 import { studios, addOnById, type StudioSlug } from "@/lib/studios";
 import {
@@ -9,6 +11,8 @@ import {
   localDateString,
   minHoursForDate,
   priceBreakdown,
+  formatMoney,
+  sessionEndTime,
 } from "@/lib/booking";
 import type { BookingRow, BookingAddOn, PaymentMethod, PaymentRow } from "@/lib/supabase/types";
 
@@ -242,6 +246,7 @@ export async function markBookingOnsite(
     })
     .eq("id", id);
   if (error) throw error;
+  if (opts.confirm) scheduleCalendarSync(id);
 }
 
 /**
@@ -257,7 +262,9 @@ export async function confirmOnsiteAdvance(id: string, advanceAmount: number): P
     .eq("booking_status", "hold")
     .select("id");
   if (error) throw error;
-  if (data?.length && advanceAmount > 0) await recordPayment(id, advanceAmount, "mia");
+  if (!data?.length) return;
+  if (advanceAmount > 0) await recordPayment(id, advanceAmount, "mia");
+  scheduleCalendarSync(id);
 }
 
 // ---------------------------------------------------------------------------
@@ -314,6 +321,7 @@ async function syncBookingPaid(bookingId: string, total: number): Promise<void> 
     })
     .eq("id", bookingId);
   if (updErr) throw updErr;
+  scheduleCalendarSync(bookingId); // refresh "paid / left to pay" in the event
 }
 
 /** Admin: remove a payment entered by mistake. */
@@ -354,6 +362,78 @@ export async function deleteBooking(id: string): Promise<void> {
   const db = getSupabaseAdmin();
   const { error } = await db.from("bookings").delete().eq("id", id);
   if (error) throw error;
+  if (isCalendarConfigured()) after(() => deleteEvent(id).catch((e) => console.error("[calendar] delete", id, e)));
+}
+
+// ---------------------------------------------------------------------------
+// Google Calendar mirror of confirmed bookings (lib/server/google-calendar.ts)
+// ---------------------------------------------------------------------------
+
+/** Push one booking to Google Calendar after the response — never blocks or breaks a booking. */
+export function scheduleCalendarSync(bookingId: string): void {
+  if (!isCalendarConfigured()) return;
+  after(() => syncBookingToCalendar(bookingId).catch((e) => console.error("[calendar] sync", bookingId, e)));
+}
+
+const PAYMENT_LABEL: Record<string, string> = {
+  onsite: "La studio",
+  mia: "La studio, cu avans MIA",
+  mia_full: "Integral prin MIA",
+};
+
+/** Confirmed → event exists and is up to date; anything else → no event. */
+export async function syncBookingToCalendar(bookingId: string): Promise<void> {
+  const db = getSupabaseAdmin();
+  const { data, error } = await db
+    .from("bookings")
+    .select("*, studios(slug)")
+    .eq("id", bookingId)
+    .maybeSingle();
+  if (error) throw error;
+  const b = data as (BookingRow & { studios: { slug: string } | null }) | null;
+  if (!b || b.booking_status !== "confirmed") return deleteEvent(bookingId);
+
+  const slug = (b.studios?.slug ?? "") as StudioSlug;
+  const studio = b.studios ? studioName(slug) : "Studio";
+  const start = b.start_time.slice(0, 5);
+  const total = Number(b.total_price);
+  const paid = Number(b.deposit_paid);
+  const { line1, line2, country } = site.contact.address;
+
+  await upsertEvent(b.id, {
+    summary: `${studio} · ${b.customer_name}${total > 0 && paid >= total ? " ✓" : ""}`,
+    description: [
+      `Client: ${b.customer_name}`,
+      `Telefon: ${b.customer_phone}`,
+      `Email: ${b.customer_email}`,
+      "",
+      `Ședința: ${start}–${sessionEndTime(start, b.duration)} (${b.duration} h)`,
+      `Total: ${formatMoney(total)}`,
+      `Achitat: ${formatMoney(paid)}${paid < total ? ` · rest ${formatMoney(total - paid)}` : " · achitat integral"}`,
+      `Plata: ${PAYMENT_LABEL[b.payment_provider ?? ""] ?? "—"}`,
+      "",
+      `CRM: ${site.domain}/admin?view=clients&q=${encodeURIComponent(b.customer_email)}`,
+    ].join("\n"),
+    location: `${line1}, ${line2}, ${country}`,
+    start: `${b.date}T${b.start_time.slice(0, 8)}`,
+    end: `${b.date}T${b.end_time.slice(0, 8)}`,
+    timeZone: "Europe/Chisinau",
+    // Sage for Production Studio, tangerine for The Apartment.
+    colorId: slug === "studio-02" ? "6" : "2",
+  });
+}
+
+/** Admin: push every confirmed booking from today on (first setup, or after a hiccup). */
+export async function syncUpcomingToCalendar(): Promise<number> {
+  const db = getSupabaseAdmin();
+  const { data, error } = await db
+    .from("bookings")
+    .select("id")
+    .eq("booking_status", "confirmed")
+    .gte("date", localDateString(new Date()));
+  if (error) throw error;
+  for (const row of data ?? []) await syncBookingToCalendar(row.id as string);
+  return data?.length ?? 0;
 }
 
 export function studioName(slug: StudioSlug): string {
