@@ -11,6 +11,22 @@ const DOC_KEYS = ["terms", "privacy", "cancellation", "rules"] as const;
 type DocKey = (typeof DOC_KEYS)[number];
 const isDoc = (doc: string): doc is DocKey => DOC_KEYS.includes(doc as DocKey);
 
+const hour = (h: number) => `${String(h).padStart(2, "0")}:00`;
+
+/** Placeholders the legal texts can use, kept in sync with lib/site.ts. */
+const legalVars = {
+  company: site.legalName,
+  address: `${site.contact.address.line1}, ${site.contact.address.line2}, ${site.contact.address.country}`,
+  email: site.contact.email,
+  open: hour(site.booking.openingHour),
+  close: hour(site.booking.closingHour),
+  lead: site.booking.minLeadHours,
+  advanceDays: site.booking.maxAdvanceDays,
+  hold: site.booking.miaHoldMinutes / 60,
+  advanceHours: site.booking.onsiteAdvanceAboveHours,
+  advancePercent: site.booking.onsiteAdvancePercent,
+};
+
 export function generateStaticParams() {
   return locales.flatMap((lang) => DOC_KEYS.map((doc) => ({ lang, doc })));
 }
@@ -65,9 +81,15 @@ export default async function LegalPage({ params }: PageProps<"/[lang]/legal/[do
             </ol>
           ) : (
             <div className="mt-10 space-y-5 leading-relaxed text-ink-soft">
-              {entry.body.map((p) => (
-                <p key={p}>{fmt(p, { email: site.contact.email })}</p>
-              ))}
+              {entry.body.map((p) =>
+                p.startsWith("## ") ? (
+                  <h2 key={p} className="pt-5 font-medium text-ink">
+                    {p.slice(3)}
+                  </h2>
+                ) : (
+                  <p key={p}>{fmt(p, legalVars)}</p>
+                ),
+              )}
             </div>
           )}
           <Link

@@ -20,10 +20,10 @@ export function Directions({ locale }: { locale: Locale }) {
               </dd>
             </div>
             <div>
-              <dt className="eyebrow">{t.phone}</dt>
+              <dt className="eyebrow">{t.email}</dt>
               <dd className="mt-1">
-                <a href={contact.phoneHref} className="text-ink-soft hover:text-ink">
-                  {contact.phone}
+                <a href={contact.emailHref} className="text-ink-soft hover:text-ink">
+                  {contact.email}
                 </a>
               </dd>
             </div>

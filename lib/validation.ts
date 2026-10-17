@@ -47,6 +47,10 @@ export const createBookingSchema = z.object({
   termsAccepted: z.literal(true, {
     message: "Trebuie să accepți regulile rezervării.",
   }),
+  /** Explicit agreement to the terms and to personal-data processing (Law 133/2011). */
+  privacyAccepted: z.literal(true, {
+    message: "Trebuie să accepți termenii și prelucrarea datelor personale.",
+  }),
 });
 
 export type CreateBookingInput = z.infer<typeof createBookingSchema>;

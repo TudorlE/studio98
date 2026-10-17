@@ -246,8 +246,6 @@ ${miaBlock}
                 <tr>
                   <td style="padding-top:24px;font-family:${font};font-size:14px;line-height:22px;color:${c.inkSoft};">
                     ${esc(t.questions)}<br>
-                    <a href="${esc(site.contact.phoneHref)}" style="color:${c.ink};text-decoration:none;">${esc(site.contact.phone)}</a>
-                    &nbsp;·&nbsp;
                     <a href="${esc(site.contact.emailHref)}" style="color:${c.ink};text-decoration:none;">${esc(site.contact.email)}</a>
                   </td>
                 </tr>
@@ -299,7 +297,7 @@ ${miaBlock}
     t.textArrive,
     fmt(t.textCancel, { url: cancelUrl }),
     ``,
-    fmt(t.textQuestions, { phone: site.contact.phone, email: site.contact.email }),
+    fmt(t.textQuestions, { email: site.contact.email }),
   ].join("\n");
 
   return { subject, html, text };

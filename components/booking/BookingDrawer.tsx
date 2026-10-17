@@ -78,6 +78,7 @@ export function BookingDrawer() {
 
   const [customer, setCustomer] = useState<CustomerFields>(emptyCustomer);
   const [terms, setTerms] = useState(false);
+  const [consent, setConsent] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("mia");
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -100,6 +101,7 @@ export function BookingDrawer() {
     setMonthCursor(new Date(today.getFullYear(), today.getMonth(), 1));
     setCustomer(emptyCustomer);
     setTerms(false);
+    setConsent(false);
     setPaymentMethod("mia");
     setSubmitError(null);
     slotCache.current.clear();
@@ -215,6 +217,7 @@ export function BookingDrawer() {
       dates.length > 0 &&
       times.length > 0 &&
       terms &&
+      consent &&
       customer.name.trim().length >= 2 &&
       /.+@.+\..+/.test(customer.email) &&
       customer.phone.trim().length >= 6,
@@ -274,6 +277,7 @@ export function BookingDrawer() {
             phone: customer.phone.trim(),
           },
           termsAccepted: true,
+          privacyAccepted: true,
         }),
       });
       const data = await res.json();
@@ -612,6 +616,8 @@ export function BookingDrawer() {
                   onChange={setCustomer}
                   terms={terms}
                   onTermsChange={setTerms}
+                  consent={consent}
+                  onConsentChange={setConsent}
                   paymentMethod={paymentMethod}
                   onPaymentMethodChange={setPaymentMethod}
                   paymentHints={paymentHints}

@@ -8,13 +8,11 @@
 
 export const site = {
   name: "STUDIO 98",
-  legalName: "Studio 98 SRL",
+  legalName: "DRAGON STUDIO SRL",
   // No trailing slash — callers append paths ("/legal/terms").
   domain: (process.env.NEXT_PUBLIC_SITE_URL || "https://www.98.studio").replace(/\/+$/, ""),
   contact: {
-    // TODO: replace all contact details with real ones
-    phone: "+373 00 000 000",
-    phoneHref: "tel:+37300000000",
+    // TODO: replace with the real address. Email is the only public contact — no phone on purpose.
     email: "hello@studio98.example",
     emailHref: "mailto:hello@studio98.example",
     address: {

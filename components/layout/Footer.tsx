@@ -23,9 +23,6 @@ export function Footer({ locale }: { locale: Locale }) {
             <a href={site.contact.emailHref} className="block hover:text-ink">
               {site.contact.email}
             </a>
-            <a href={site.contact.phoneHref} className="block hover:text-ink">
-              {site.contact.phone}
-            </a>
           </div>
         </div>
 

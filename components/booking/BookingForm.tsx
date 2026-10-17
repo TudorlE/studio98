@@ -9,12 +9,15 @@ export type CustomerFields = { name: string; email: string; phone: string };
 
 const field =
   "h-12 w-full border border-line bg-transparent px-4 text-sm outline-none transition-colors focus:border-ink placeholder:text-ink-faint";
+const legalLink = "text-ink underline underline-offset-2 hover:text-accent";
 
 export function BookingForm({
   values,
   onChange,
   terms,
   onTermsChange,
+  consent,
+  onConsentChange,
   paymentMethod,
   onPaymentMethodChange,
   paymentHints,
@@ -25,6 +28,9 @@ export function BookingForm({
   onChange: (next: CustomerFields) => void;
   terms: boolean;
   onTermsChange: (v: boolean) => void;
+  /** Agreement to the terms + personal-data processing (privacy policy). */
+  consent: boolean;
+  onConsentChange: (v: boolean) => void;
   paymentMethod: PaymentMethod;
   onPaymentMethodChange: (m: PaymentMethod) => void;
   /** One-line explanation under each payment option. */
@@ -32,7 +38,7 @@ export function BookingForm({
   onSubmit: () => void;
   error: string | null;
 }) {
-  const { t: dict } = useI18n();
+  const { t: dict, path } = useI18n();
   const t = dict.booking.form;
   const rulesRef = useRef<HTMLDivElement>(null);
   const [hasReadRules, setHasReadRules] = useState(false);
@@ -177,6 +183,27 @@ export function BookingForm({
           onChange={(e) => onTermsChange(e.target.checked)}
         />
         <span>{t.agree}</span>
+      </label>
+
+      <label className="flex cursor-pointer items-start gap-3 text-sm text-ink-soft">
+        <input
+          type="checkbox"
+          className="mt-0.5 h-4 w-4 accent-ink"
+          checked={consent}
+          onChange={(e) => onConsentChange(e.target.checked)}
+          required
+        />
+        <span>
+          {t.consent.before}
+          <a href={path("/legal/terms")} target="_blank" rel="noopener" className={legalLink}>
+            {t.consent.terms}
+          </a>
+          {t.consent.middle}
+          <a href={path("/legal/privacy")} target="_blank" rel="noopener" className={legalLink}>
+            {t.consent.privacy}
+          </a>
+          {t.consent.after}
+        </span>
       </label>
 
       {error && (

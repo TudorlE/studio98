@@ -11,7 +11,6 @@ const jsonLd = (locale: Locale) => ({
   name: site.name,
   description: getDictionary(locale).meta.description,
   url: site.domain,
-  telephone: site.contact.phone,
   email: site.contact.email,
   address: {
     "@type": "PostalAddress",
