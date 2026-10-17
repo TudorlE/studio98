@@ -416,7 +416,7 @@ type OutgoingEmail = { to: string; subject: string; html: string; text: string; 
 
 async function deliver(email: OutgoingEmail): Promise<void> {
   const apiKey = process.env.RESEND_API_KEY;
-  const from = process.env.EMAIL_FROM ?? "bookings@studio98.example";
+  const from = process.env.EMAIL_FROM ?? "Studio 98 <rezervari@98.studio>";
 
   if (!apiKey) {
     console.info(`[email] RESEND_API_KEY not set — not sent to ${email.to}:\n`, {
@@ -451,7 +451,8 @@ async function deliver(email: OutgoingEmail): Promise<void> {
 export async function sendBookingConfirmation(data: BookingConfirmationEmail): Promise<void> {
   const notifyTo = process.env.BOOKING_NOTIFY_EMAIL;
   await Promise.all([
-    deliver({ to: data.to, ...renderBookingConfirmation(data) }),
+    // The sending address can't receive mail — client replies go to the studio inbox.
+    deliver({ to: data.to, replyTo: notifyTo || undefined, ...renderBookingConfirmation(data) }),
     notifyTo
       ? deliver({ to: notifyTo, replyTo: data.to, ...renderBookingNotification(data) })
       : Promise.resolve(),

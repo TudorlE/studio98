@@ -12,9 +12,9 @@ export const site = {
   // No trailing slash — callers append paths ("/legal/terms").
   domain: (process.env.NEXT_PUBLIC_SITE_URL || "https://www.98.studio").replace(/\/+$/, ""),
   contact: {
-    // TODO: replace with the real address. Email is the only public contact — no phone on purpose.
-    email: "hello@studio98.example",
-    emailHref: "mailto:hello@studio98.example",
+    // Email is the only public contact — no phone on purpose.
+    email: "dragoshphoto@gmail.com",
+    emailHref: "mailto:dragoshphoto@gmail.com",
     address: {
       line1: "31 August 1989 St 98",
       line2: "MD-2004, Chișinău",
