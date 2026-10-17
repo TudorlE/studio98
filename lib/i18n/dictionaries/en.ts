@@ -95,8 +95,8 @@ export const en = {
     hints: {
       mia: "Pay now via MIA (Plăți Instant) — we confirm the booking once the payment arrives.",
       onsiteAdvance:
-        "Over {hours}/day: {percent}% deposit ({amount}) via MIA, the rest at the studio. Cards accepted (POS).",
-      onsite: "Pay at the studio on the day. Cards accepted (POS).",
+        "Over {hours}/day: {percent}% deposit ({amount}) via MIA now, the rest at the studio — bank cards accepted.",
+      onsite: "Pay at the studio on the day — bank cards accepted at our POS terminal.",
     },
     form: {
       name: "Your name",

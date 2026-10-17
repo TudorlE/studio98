@@ -100,8 +100,8 @@ export const ro = {
     hints: {
       mia: "Plătești acum prin MIA (Plăți Instant) — confirmăm rezervarea după ce primim plata.",
       onsiteAdvance:
-        "Peste {hours}/zi: avans {percent}% ({amount}) prin MIA, restul la studio. Acceptăm card (POS).",
-      onsite: "Plătești la studio, în ziua ședinței. Acceptăm card (POS).",
+        "Peste {hours}/zi: avans {percent}% ({amount}) prin MIA acum, restul la studio — și cu cardul bancar.",
+      onsite: "Achiți la studio, în ziua ședinței — și cu cardul bancar, avem terminal POS.",
     },
     form: {
       name: "Numele tău",
