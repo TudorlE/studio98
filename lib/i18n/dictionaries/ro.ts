@@ -100,8 +100,8 @@ export const ro = {
     hints: {
       mia: "Plătești acum prin MIA (Plăți Instant) — confirmăm rezervarea după ce primim plata.",
       onsiteAdvance:
-        "Pentru mai mult de {hours} într-o zi, achiți acum un avans de {percent}% ({amount}) prin MIA, restul la studio.",
-      onsite: "Plătești direct la studio, în ziua ședinței.",
+        "Pentru mai mult de {hours} într-o zi, achiți acum un avans de {percent}% ({amount}) prin MIA, restul la studio — se poate și cu cardul, la terminalul POS.",
+      onsite: "Plătești direct la studio, în ziua ședinței. Se poate achita și cu cardul, la terminalul POS.",
     },
     form: {
       name: "Numele tău",
@@ -193,8 +193,8 @@ export const ro = {
           "După trimitere primești pe email confirmarea cu toate detaliile. Ești responsabil(ă) ca datele introduse să fie corecte. Dacă rezervi în numele unei firme sau al altei persoane, confirmi că ai dreptul să o faci.",
           "## 4. Plata",
           "Prin MIA (Plăți Instant): achiți integral din aplicația băncii, scanând codul QR sau deschizând linkul MIA. Intervalul îți este păstrat {hold} de ore. Dacă plata nu ajunge în acest timp, rezervarea se anulează automat și intervalul se eliberează.",
-          "La studio: achiți în ziua ședinței. Pentru mai mult de {advanceHours} ore într-o zi, rezervarea se confirmă după un avans de {advancePercent}% prin MIA, iar restul se achită la studio. Avansul trebuie să ajungă în {hold} de ore, altfel rezervarea se anulează automat.",
-          "Nu colectăm și nu stocăm date de card. Serviciile suplimentare (de exemplu folosirea căzii din The Apartment) se stabilesc cu administratorul și se achită separat.",
+          "La studio: achiți în ziua ședinței, inclusiv cu cardul, la terminalul POS. Pentru mai mult de {advanceHours} ore într-o zi, rezervarea se confirmă după un avans de {advancePercent}% prin MIA, iar restul se achită la studio. Avansul trebuie să ajungă în {hold} de ore, altfel rezervarea se anulează automat.",
+          "Pe site nu colectăm și nu stocăm date de card; plata cu cardul se face doar la studio, prin terminalul POS. Serviciile suplimentare (de exemplu folosirea căzii din The Apartment) se stabilesc cu administratorul și se achită separat.",
           "## 5. Anulare și reprogramare",
           "Anularea, reprogramarea și rambursările se fac conform Politicii de anulare.",
           "## 6. Folosirea spațiului",

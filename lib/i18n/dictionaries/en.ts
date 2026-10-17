@@ -95,8 +95,8 @@ export const en = {
     hints: {
       mia: "Pay now via MIA (Plăți Instant) — we confirm the booking once the payment arrives.",
       onsiteAdvance:
-        "For more than {hours} a day, you pay a {percent}% deposit ({amount}) via MIA now and the rest at the studio.",
-      onsite: "Pay at the studio on the day of your session.",
+        "For more than {hours} a day, you pay a {percent}% deposit ({amount}) via MIA now and the rest at the studio — card payments by POS terminal are accepted.",
+      onsite: "Pay at the studio on the day of your session. You can also pay by card at our POS terminal.",
     },
     form: {
       name: "Your name",
@@ -188,8 +188,8 @@ export const en = {
           "Once submitted, you receive an email confirmation with all the details. You are responsible for entering correct details. If you book on behalf of a company or another person, you confirm that you are entitled to do so.",
           "## 4. Payment",
           "Via MIA (Plăți Instant): pay in full from your banking app by scanning the QR code or opening the MIA link. Your slot is held for {hold} hours. If the payment does not arrive within that time, the booking is cancelled automatically and the slot is released.",
-          "At the studio: pay on the day of the session. For more than {advanceHours} hours in one day, the booking is confirmed after a {advancePercent}% advance via MIA, with the rest paid at the studio. The advance must arrive within {hold} hours, otherwise the booking is cancelled automatically.",
-          "We do not collect or store card details. Extra services (for example using the bathtub in The Apartment) are agreed with the manager and paid separately.",
+          "At the studio: pay on the day of the session, including by card at our POS terminal. For more than {advanceHours} hours in one day, the booking is confirmed after a {advancePercent}% advance via MIA, with the rest paid at the studio. The advance must arrive within {hold} hours, otherwise the booking is cancelled automatically.",
+          "We do not collect or store card details on the site; card payments happen only at the studio, by POS terminal. Extra services (for example using the bathtub in The Apartment) are agreed with the manager and paid separately.",
           "## 5. Cancellation and rescheduling",
           "Cancellations, rescheduling and refunds follow the Cancellation policy.",
           "## 6. Using the space",
