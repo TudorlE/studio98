@@ -36,6 +36,10 @@ export const ro = {
     bookStudio: "Rezervă un studio",
     language: "Limba",
   },
+  footer: {
+    /** Official MIA clarifying phrase (BNM integration guide). */
+    payWith: "Plătește cu",
+  },
   legalLinks: {
     terms: "Termeni",
     privacy: "Confidențialitate",
@@ -51,6 +55,9 @@ export const ro = {
     photosAndDetails: "{name} — fotografii și detalii",
     priceLine: "{description} {price} / oră.",
     book: "Rezervă Studio {index}",
+    prevPhoto: "Fotografia anterioară",
+    nextPhoto: "Fotografia următoare",
+    photo: "Fotografia {n}",
     descriptions: {
       "studio-01": "O cameră luminoasă, plină de lumină naturală.",
       "studio-02": "O cameră întunecată, creată pentru lumină dramatică.",
@@ -89,8 +96,8 @@ export const ro = {
     dueAtStudio: "+ {amount} la studio",
     footerNote: "Plata se face prin MIA (Plăți Instant) sau direct la studio.",
     submitting: "Se rezervă…",
-    submitMia: "Rezervă — plătește {amount} prin MIA",
-    submitAdvance: "Rezervă — avans {amount} prin MIA",
+    submitMia: "Plătește {amount} cu {mia}",
+    submitAdvance: "Avans {amount} cu {mia}",
     submitOnsite: "Rezervă — plata la studio",
     errors: {
       conflict: "Unul dintre intervalele alese tocmai a fost rezervat.",
@@ -285,7 +292,9 @@ export const ro = {
     qrInstructions:
       "Scanează codul cu aplicația băncii tale sau deschide MIA direct de pe telefon, apoi trimite suma de {amount} către {recipient}.",
     deadline: "Ai {hold} să achiți — altfel rezervarea se anulează automat.",
-    openMia: "Deschide în MIA",
+    openMia: "Deschide în {mia}",
+    scanAndPay: "Scanează & Plătește",
+    miaRights: "© MIA Plăți Instant. Toate drepturile rezervate",
     studio: "Studio",
     date: "Data",
     dates: "Date",

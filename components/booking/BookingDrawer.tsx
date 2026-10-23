@@ -25,6 +25,7 @@ import {
 import { BookingForm, type CustomerFields } from "./BookingForm";
 import { useBookingDrawer } from "./BookingDrawerContext";
 import { useI18n } from "@/components/i18n/I18nProvider";
+import { withMiaLogo } from "@/components/ui/MiaLogo";
 import { fmt, intlLocale, plural } from "@/lib/i18n";
 
 const ease = [0.22, 1, 0.36, 1] as const;
@@ -315,11 +316,16 @@ export function BookingDrawer() {
         : t.hints.onsite,
   };
 
+  // White wordmark — the submit button is black.
+  const miaOnButton = { variant: "white", className: "h-[1.05rem]" } as const;
+
   const buttonLabel = (() => {
     if (submitting) return t.submitting;
     if (!breakdown) return t.title;
-    if (paymentMethod === "mia") return fmt(t.submitMia, { amount: money(breakdown.total) });
-    return advance > 0 ? fmt(t.submitAdvance, { amount: money(advance) }) : t.submitOnsite;
+    if (paymentMethod === "mia") return withMiaLogo(fmt(t.submitMia, { amount: money(breakdown.total) }), miaOnButton);
+    return advance > 0
+      ? withMiaLogo(fmt(t.submitAdvance, { amount: money(advance) }), miaOnButton)
+      : t.submitOnsite;
   })();
 
   const timeSummary =
@@ -638,7 +644,7 @@ export function BookingDrawer() {
                   type="button"
                   onClick={submit}
                   disabled={!canSubmit || submitting}
-                  className="flex h-14 w-full items-center justify-center rounded-full bg-ink text-[0.75rem] font-medium uppercase tracking-[0.18em] text-paper transition-colors hover:bg-ink-soft disabled:opacity-40"
+                  className="flex h-14 w-full items-center justify-center rounded-full bg-ink px-6 text-[0.75rem] font-medium uppercase tracking-[0.18em] text-paper transition-colors hover:bg-ink-soft disabled:opacity-40"
                 >
                   {buttonLabel}
                 </button>

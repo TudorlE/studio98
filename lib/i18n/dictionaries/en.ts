@@ -31,6 +31,10 @@ export const en = {
     bookStudio: "Book a studio",
     language: "Language",
   },
+  footer: {
+    /** Official MIA clarifying phrase (BNM integration guide). */
+    payWith: "Pay with",
+  },
   legalLinks: {
     terms: "Terms",
     privacy: "Privacy",
@@ -46,6 +50,9 @@ export const en = {
     photosAndDetails: "{name} — photos and details",
     priceLine: "{description} {price} / hour.",
     book: "Book Studio {index}",
+    prevPhoto: "Previous photo",
+    nextPhoto: "Next photo",
+    photo: "Photo {n}",
     descriptions: {
       "studio-01": "A bright room, full of natural light.",
       "studio-02": "A dark room, made for dramatic light.",
@@ -84,8 +91,8 @@ export const en = {
     dueAtStudio: "+ {amount} at the studio",
     footerNote: "Pay via MIA (Plăți Instant) or at the studio.",
     submitting: "Booking…",
-    submitMia: "Book — pay {amount} via MIA",
-    submitAdvance: "Book — {amount} deposit via MIA",
+    submitMia: "Pay {amount} with {mia}",
+    submitAdvance: "{amount} deposit with {mia}",
     submitOnsite: "Book — pay at the studio",
     errors: {
       conflict: "One of the times you picked has just been booked.",
@@ -280,7 +287,9 @@ export const en = {
     qrInstructions:
       "Scan the code with your bank's app or open MIA directly on your phone, then send {amount} to {recipient}.",
     deadline: "You have {hold} to pay — otherwise the booking is cancelled automatically.",
-    openMia: "Open in MIA",
+    openMia: "Open in {mia}",
+    scanAndPay: "Scan & Pay",
+    miaRights: "© MIA Instant Payments. All rights reserved.",
     studio: "Studio",
     date: "Date",
     dates: "Dates",
