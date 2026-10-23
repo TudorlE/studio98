@@ -9,7 +9,7 @@ import { Button, ButtonLink } from "@/components/ui/Button";
 import { useI18n } from "@/components/i18n/I18nProvider";
 
 export function Hero() {
-  const { openDetails } = useStudioDetails();
+  const { openDetails, warmDetails } = useStudioDetails();
   const { openBooking } = useBookingDrawer();
   const { t, path } = useI18n();
 
@@ -37,7 +37,12 @@ export function Hero() {
 
         <div className="relative mt-6 flex flex-col items-center gap-6 sm:mt-6 sm:flex-row sm:gap-6 lg:gap-10">
           {studios.map((s) => (
-            <StudioTile key={s.slug} studio={s} onOpen={() => openDetails(s.slug)} />
+            <StudioTile
+              key={s.slug}
+              studio={s}
+              onOpen={(index, rect) => openDetails(s.slug, { index, rect })}
+              onWarm={() => warmDetails(s.slug)}
+            />
           ))}
         </div>
       </div>

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
 import type { PaymentMethod } from "@/lib/booking";
 import { useI18n } from "@/components/i18n/I18nProvider";
+import { MiaLogo } from "@/components/ui/MiaLogo";
 
 export type CustomerFields = { name: string; email: string; phone: string };
 
@@ -135,8 +136,11 @@ export function BookingForm({
                 checked={paymentMethod === value}
                 onChange={() => onPaymentMethodChange(value)}
               />
-              <span>
-                <span className="block font-medium text-ink">{label}</span>
+              <span className="flex-1">
+                <span className="flex items-center justify-between gap-3 font-medium text-ink">
+                  {label}
+                  {value === "mia" && <MiaLogo className="h-[1.1rem]" />}
+                </span>
                 <span className="mt-1 block text-xs text-ink-soft">{paymentHints[value]}</span>
               </span>
             </label>

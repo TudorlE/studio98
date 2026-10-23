@@ -6,13 +6,33 @@ import { cn } from "@/lib/cn";
 import type { Studio } from "@/lib/studios";
 import { fmt } from "@/lib/i18n";
 import { useI18n } from "@/components/i18n/I18nProvider";
+import { useStudioDetails } from "./StudioDetailsContext";
 
 /** Not too fast, not too slow. */
 const SLIDESHOW_INTERVAL_MS = 4500;
 const CROSSFADE_MS = 1000;
+/** Shared with the details overlay, which reuses these (already cached) files as its instant placeholder. */
+export const TILE_SIZES = "(max-width: 640px) 86vw, 32vw";
 
-export function StudioTile({ studio, onOpen }: { studio: Studio; onOpen: () => void }) {
+export function StudioTile({
+  studio,
+  onOpen,
+  onWarm,
+}: {
+  studio: Studio;
+  /** Opens the overlay from this tile: the photo on show and the tile's box. */
+  onOpen: (index: number, rect: DOMRect) => void;
+  /** Pointer/finger is on the tile — start loading the full-size photos. */
+  onWarm: () => void;
+}) {
   const [photoIndex, setPhotoIndex] = useState(0);
+  // Pick up from the photo the details overlay was on, so closing lands on the same picture.
+  const { lastView } = useStudioDetails();
+  const [seenView, setSeenView] = useState(lastView);
+  if (lastView !== seenView) {
+    setSeenView(lastView);
+    if (lastView?.slug === studio.slug) setPhotoIndex(lastView.index);
+  }
   const { t } = useI18n();
 
   useEffect(() => {
@@ -27,7 +47,10 @@ export function StudioTile({ studio, onOpen }: { studio: Studio; onOpen: () => v
   return (
     <button
       type="button"
-      onClick={onOpen}
+      onClick={(e) => onOpen(photoIndex, e.currentTarget.getBoundingClientRect())}
+      onPointerEnter={onWarm}
+      onTouchStart={onWarm}
+      onFocus={onWarm}
       aria-label={fmt(t.studio.photosAndDetails, { name: studio.subtitle })}
       className="group relative aspect-[4/3] w-[clamp(17rem,86vw,26rem)] shrink-0 overflow-hidden rounded-[2rem] border border-paper/30 transition-colors hover:border-paper/70 sm:w-[clamp(20rem,32vw,34rem)]"
     >
@@ -38,7 +61,7 @@ export function StudioTile({ studio, onOpen }: { studio: Studio; onOpen: () => v
           alt=""
           fill
           priority={i === 0}
-          sizes="(max-width: 640px) 86vw, 32vw"
+          sizes={TILE_SIZES}
           className={cn(
             "object-cover ease-in-out",
             i === photoIndex ? "opacity-100" : "opacity-0",

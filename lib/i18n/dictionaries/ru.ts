@@ -31,6 +31,10 @@ export const ru = {
     bookStudio: "Забронировать студию",
     language: "Язык",
   },
+  footer: {
+    /** Official MIA clarifying phrase (BNM integration guide). */
+    payWith: "Оплатить",
+  },
   legalLinks: {
     terms: "Условия",
     privacy: "Конфиденциальность",
@@ -46,6 +50,9 @@ export const ru = {
     photosAndDetails: "{name} — фото и подробности",
     priceLine: "{description} {price} / час.",
     book: "Забронировать Studio {index}",
+    prevPhoto: "Предыдущее фото",
+    nextPhoto: "Следующее фото",
+    photo: "Фото {n}",
     descriptions: {
       "studio-01": "Светлый зал, наполненный естественным светом.",
       "studio-02": "Тёмный зал, созданный для драматичного света.",
@@ -84,8 +91,8 @@ export const ru = {
     dueAtStudio: "+ {amount} в студии",
     footerNote: "Оплата через MIA (Plăți Instant) или на месте, в студии.",
     submitting: "Бронируем…",
-    submitMia: "Забронировать — оплатить {amount} через MIA",
-    submitAdvance: "Забронировать — аванс {amount} через MIA",
+    submitMia: "Оплатить {amount} {mia}",
+    submitAdvance: "Аванс {amount} через {mia}",
     submitOnsite: "Забронировать — оплата в студии",
     errors: {
       conflict: "Один из выбранных интервалов только что забронировали.",
@@ -280,7 +287,9 @@ export const ru = {
     qrInstructions:
       "Отсканируйте код в приложении своего банка или откройте MIA прямо с телефона и отправьте {amount} получателю {recipient}.",
     deadline: "У вас {hold} на оплату — иначе бронь отменится автоматически.",
-    openMia: "Открыть в MIA",
+    openMia: "Открыть в {mia}",
+    scanAndPay: "Отсканируй и Оплати",
+    miaRights: "© MIA Мгновенные Платежи. Все права защищены",
     studio: "Студия",
     date: "Дата",
     dates: "Даты",

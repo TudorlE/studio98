@@ -5,6 +5,7 @@ import { Check } from "lucide-react";
 import { Container } from "@/components/ui/Container";
 import { Footer } from "@/components/layout/Footer";
 import { Logo } from "@/components/ui/Logo";
+import { MiaLogo, MiaSeparator, withMiaLogo } from "@/components/ui/MiaLogo";
 import { site } from "@/lib/site";
 import { isSupabaseConfigured } from "@/lib/supabase/admin";
 import { getBooking, studioName } from "@/lib/server/bookings";
@@ -140,32 +141,40 @@ export default async function ConfirmationPage({
               </div>
 
               {miaDue && (
-                <div className="mt-12 flex flex-col items-center border border-line p-6 text-center sm:p-10">
+                // MIA QR card — the "minimal modal" layout from the BNM integration guide
+                // (white base, black elements, four-colour separator, logo + rights line).
+                <div className="mx-auto mt-12 flex max-w-sm flex-col items-center rounded-[2rem] border border-line bg-white px-6 pb-6 pt-8 text-center sm:px-8">
                   <p className="eyebrow">
                     {details?.miaAdvance ? t.payAdvance : t.payFull}
                   </p>
-                  <p className="mt-3 font-serif text-4xl tracking-tight">{miaDue}</p>
+                  <p className="mt-2 font-serif text-4xl tracking-tight">{miaDue}</p>
                   <Image
                     src={site.booking.mia.qrSrc}
                     alt={t.qrAlt}
                     width={240}
                     height={240}
-                    className="mt-6 h-48 w-48 sm:h-56 sm:w-56"
+                    className="mt-6 h-52 w-52 sm:h-56 sm:w-56"
                   />
-                  <p className="mt-6 max-w-sm text-sm text-ink-soft">
+                  <p className="mt-6 text-lg font-medium text-ink">{t.scanAndPay}</p>
+                  <p className="mt-2 text-sm text-ink-soft">
                     {fmt(t.qrInstructions, { amount: miaDue, recipient: site.booking.mia.recipient })}
                   </p>
-                  <p className="mt-3 max-w-sm text-sm font-medium text-ink">
-                    {fmt(t.deadline, { hold })}
-                  </p>
+                  <p className="mt-3 text-sm font-medium text-ink">{fmt(t.deadline, { hold })}</p>
                   <a
                     href={site.booking.mia.deepLink}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="mt-6 inline-flex h-12 items-center rounded-full bg-ink px-8 text-[0.7rem] font-medium uppercase tracking-[0.18em] text-paper transition-colors hover:bg-ink-soft"
+                    className="mt-6 inline-flex h-12 items-center rounded-full bg-black px-8 text-[0.7rem] font-medium uppercase tracking-[0.18em] text-white transition-colors hover:bg-ink-soft"
                   >
-                    {t.openMia}
+                    {withMiaLogo(t.openMia, { variant: "white", className: "h-4" })}
                   </a>
+                  <MiaSeparator className="mt-8" />
+                  <div className="mt-4 flex w-full items-center justify-between gap-4">
+                    <MiaLogo variant="black" className="h-4" />
+                    <span className="text-right text-[0.6rem] leading-tight text-ink-faint">
+                      {t.miaRights}
+                    </span>
+                  </div>
                 </div>
               )}
 
