@@ -15,6 +15,7 @@ export function ConfirmDeleteButton({
   title,
   message,
   size = "md",
+  label,
 }: {
   action: (formData: FormData) => Promise<void>;
   name: string;
@@ -22,6 +23,8 @@ export function ConfirmDeleteButton({
   title: string;
   message: string;
   size?: "sm" | "md";
+  /** Shows a labeled pill button instead of the bare trash icon — for actions that need to read as an undo, not a delete. */
+  label?: string;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -40,12 +43,14 @@ export function ConfirmDeleteButton({
         aria-label={title}
         title={title}
         className={
-          size === "sm"
-            ? "grid h-7 w-7 shrink-0 place-items-center rounded-full text-ink-faint transition-colors hover:bg-red-50 hover:text-red-600"
-            : "grid h-9 w-9 shrink-0 place-items-center rounded-full border border-line text-ink-faint transition-colors hover:border-red-300 hover:bg-red-50 hover:text-red-600"
+          label
+            ? "h-9 shrink-0 rounded-full border border-ink/25 px-4 text-[0.6rem] font-medium uppercase tracking-[0.1em] text-ink-faint transition-colors hover:border-red-300 hover:bg-red-50 hover:text-red-600"
+            : size === "sm"
+              ? "grid h-7 w-7 shrink-0 place-items-center rounded-full text-ink-faint transition-colors hover:bg-red-50 hover:text-red-600"
+              : "grid h-9 w-9 shrink-0 place-items-center rounded-full border border-line text-ink-faint transition-colors hover:border-red-300 hover:bg-red-50 hover:text-red-600"
         }
       >
-        <Trash2 size={size === "sm" ? 13 : 14} strokeWidth={1.75} />
+        {label ?? <Trash2 size={size === "sm" ? 13 : 14} strokeWidth={1.75} />}
       </button>
 
       {open &&

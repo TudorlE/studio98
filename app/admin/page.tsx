@@ -185,6 +185,23 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
   const bookings = all.filter((b) => matches(b, q));
   const shownClients = clients.filter((c) => c.bookings.some((b) => matches(b, q)));
 
+  // Only the first (newest) row per client shows the "N rezervări" pill — otherwise it
+  // visually repeats on every one of that client's rows and reads like a glitch.
+  const firstBookingIdForClient = new Map<string, string>();
+  for (const b of bookings) {
+    const key = clientKey(b);
+    if (!firstBookingIdForClient.has(key)) firstBookingIdForClient.set(key, b.id);
+  }
+
+  // Newest studio payment per booking, so "Încasat la studio" can offer an inline undo
+  // right next to where it was recorded (payments already come back newest-first).
+  const lastStudioPaymentByBooking = new Map<string, PaymentRow>();
+  for (const p of payments ?? []) {
+    if (p.method === "studio" && p.booking_id && !lastStudioPaymentByBooking.has(p.booking_id)) {
+      lastStudioPaymentByBooking.set(p.booking_id, p);
+    }
+  }
+
   const [bYear, bMonthNum] = bMonth.split("-").map(Number);
   const blackoutDays = view === "blackouts" ? await getMonthBlackoutDays(bStudio, bYear, bMonthNum) : new Set<string>();
   const daySchedule = view === "blackouts" && bDay ? await getDaySchedule(bStudio, bDay) : null;
@@ -303,11 +320,19 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
                         <td className="px-4 py-4 whitespace-nowrap text-ink-soft">{formatMoment(b.created_at)}</td>
                         <td className="px-4 py-4">{b.studio_name}</td>
                         <td className="px-4 py-4">
-                          <ClientCell b={b} client={clientByKey.get(clientKey(b))} />
+                          <ClientCell
+                            b={b}
+                            client={clientByKey.get(clientKey(b))}
+                            showBadge={firstBookingIdForClient.get(clientKey(b)) === b.id}
+                          />
                         </td>
                         <td className="px-4 py-4">
                           <StatusBadge b={b} />
-                          <PaymentActions b={b} ledgerReady={ledgerReady} />
+                          <PaymentActions
+                            b={b}
+                            ledgerReady={ledgerReady}
+                            lastStudioPayment={lastStudioPaymentByBooking.get(b.id) ?? null}
+                          />
                         </td>
                         <td className="px-4 py-4 text-right font-medium whitespace-nowrap">
                           {formatMoney(b.total_price)}
@@ -337,12 +362,20 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
                       <p className="font-serif text-lg whitespace-nowrap">{formatMoney(b.total_price)}</p>
                     </div>
                     <div className="mt-3 border-t border-line pt-3">
-                      <ClientCell b={b} client={clientByKey.get(clientKey(b))} />
+                      <ClientCell
+                        b={b}
+                        client={clientByKey.get(clientKey(b))}
+                        showBadge={firstBookingIdForClient.get(clientKey(b)) === b.id}
+                      />
                     </div>
                     <div className="mt-3 flex items-end justify-between gap-3 border-t border-line pt-3">
                       <div>
                         <StatusBadge b={b} />
-                        <PaymentActions b={b} ledgerReady={ledgerReady} />
+                        <PaymentActions
+                          b={b}
+                          ledgerReady={ledgerReady}
+                          lastStudioPayment={lastStudioPaymentByBooking.get(b.id) ?? null}
+                        />
                       </div>
                       <DeleteBooking b={b} />
                     </div>
@@ -440,22 +473,37 @@ function ContactLinks({ email, phone }: { email: string; phone: string }) {
   );
 }
 
-/** Name, tap-to-call / tap-to-email, and how many times they've booked (links to their history). */
-function ClientCell({ b, client }: { b: AdminBookingRow; client: Client | undefined }) {
+/**
+ * Name, tap-to-call / tap-to-email, and how many times they've booked (links
+ * to their history) — shown only once per client (their newest row), since
+ * repeating the same "N rezervări" pill on every one of their rows reads
+ * like duplicated/broken data rather than one client's booking history.
+ */
+function ClientCell({
+  b,
+  client,
+  showBadge,
+}: {
+  b: AdminBookingRow;
+  client: Client | undefined;
+  showBadge: boolean;
+}) {
   const count = client?.bookings.length ?? 1;
   return (
     <div className="min-w-0">
       <p className="flex flex-wrap items-center gap-2">
         <span className="font-medium">{b.customer_name}</span>
-        <Link
-          href={`/admin?view=clients&q=${encodeURIComponent(b.customer_email || b.customer_phone)}`}
-          className={cn(
-            "rounded-full px-2 py-0.5 text-[0.65rem] font-medium",
-            count > 1 ? "bg-accent/10 text-accent hover:bg-accent/20" : "bg-neutral-100 text-neutral-500 hover:bg-neutral-200",
-          )}
-        >
-          {count > 1 ? `${count} rezervări` : "Client nou"}
-        </Link>
+        {showBadge && (
+          <Link
+            href={`/admin?view=clients&q=${encodeURIComponent(b.customer_email || b.customer_phone)}`}
+            className={cn(
+              "rounded-full px-2 py-0.5 text-[0.65rem] font-medium",
+              count > 1 ? "bg-accent/10 text-accent hover:bg-accent/20" : "bg-neutral-100 text-neutral-500 hover:bg-neutral-200",
+            )}
+          >
+            {count > 1 ? `${count} rezervări` : "Client nou"}
+          </Link>
+        )}
       </p>
       <ContactLinks email={b.customer_email} phone={b.customer_phone} />
     </div>
@@ -472,33 +520,57 @@ function StatusBadge({ b }: { b: AdminBookingRow }) {
 }
 
 /** "Confirm MIA" form + auto-delete deadline, only for bookings waiting on a MIA transfer. */
-function PaymentActions({ b, ledgerReady }: { b: AdminBookingRow; ledgerReady: boolean }) {
+function PaymentActions({
+  b,
+  ledgerReady,
+  lastStudioPayment,
+}: {
+  b: AdminBookingRow;
+  ledgerReady: boolean;
+  lastStudioPayment: PaymentRow | null;
+}) {
   const awaitingAdvance = b.booking_status === "hold" && b.payment_provider === "mia";
   const awaitingFull = b.booking_status === "hold" && b.payment_provider === "mia_full";
   if (!awaitingAdvance && !awaitingFull) {
+    if (!ledgerReady) return null;
     const balance = Number(b.total_price) - Number(b.deposit_paid);
-    if (!ledgerReady || b.booking_status !== "confirmed" || balance <= 0) return null;
+    const canRecord = b.booking_status === "confirmed" && balance > 0;
+    if (!canRecord && !lastStudioPayment) return null;
     return (
-      <div className="mt-2">
-        <form action={recordStudioPayment} className="flex items-center gap-1.5">
-          <input type="hidden" name="bookingId" value={b.id} />
-          <input
-            type="number"
-            name="amount"
-            defaultValue={balance}
-            min={1}
-            step={1}
-            aria-label="Suma încasată la studio"
-            className="h-9 w-24 rounded-full border border-line bg-transparent px-3 text-right text-xs outline-none focus:border-ink"
+      <div className="mt-2 space-y-1.5">
+        {canRecord && (
+          <>
+            <form action={recordStudioPayment} className="flex items-center gap-1.5">
+              <input type="hidden" name="bookingId" value={b.id} />
+              <input
+                type="number"
+                name="amount"
+                defaultValue={balance}
+                min={1}
+                step={1}
+                aria-label="Suma încasată la studio"
+                className="h-9 w-24 rounded-full border border-line bg-transparent px-3 text-right text-xs outline-none focus:border-ink"
+              />
+              <button
+                type="submit"
+                className="h-9 shrink-0 rounded-full border border-ink/25 px-4 text-[0.6rem] font-medium uppercase tracking-[0.1em] transition-colors hover:bg-ink hover:text-paper"
+              >
+                Încasat la studio
+              </button>
+            </form>
+            <span className="block text-[0.65rem] text-ink-faint">Rest de plată: {formatMoney(balance)}</span>
+          </>
+        )}
+        {lastStudioPayment && (
+          <ConfirmDeleteButton
+            action={removePayment}
+            name="paymentId"
+            value={lastStudioPayment.id}
+            label="Anulează încasarea"
+            title="Anulezi încasarea?"
+            message={`${formatMoney(lastStudioPayment.amount)} încasați la studio pentru ${b.customer_name}. Folosește doar dacă suma a fost introdusă greșit.`}
           />
-          <button
-            type="submit"
-            className="h-9 shrink-0 rounded-full border border-ink/25 px-4 text-[0.6rem] font-medium uppercase tracking-[0.1em] transition-colors hover:bg-ink hover:text-paper"
-          >
-            Încasat la studio
-          </button>
-        </form>
-        <span className="mt-1 block text-[0.65rem] text-ink-faint">Rest de plată: {formatMoney(balance)}</span>
+        )}
       </div>
     );
   }
