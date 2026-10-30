@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ChevronDown, ChevronLeft, ChevronRight, Lock, Mail, Phone } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, Mail, Phone } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { formatMoney, generateDaySlots, localDateString, onsiteAdvance, sessionEndTime } from "@/lib/booking";
 import { site } from "@/lib/site";
@@ -13,6 +13,7 @@ import type { PaymentRow } from "@/lib/supabase/types";
 import { AdminLoginForm } from "./AdminLoginForm";
 import { AdminSearchBox } from "./AdminSearchBox";
 import { SubmitButton } from "./SubmitButton";
+import { HourToggleButton, WholeDayToggleButton } from "./BlackoutControls";
 import { isCalendarConfigured } from "@/lib/server/google-calendar";
 import { ConfirmDeleteButton } from "./ConfirmDeleteButton";
 import { CalendarSyncButton } from "./CalendarSyncButton";
@@ -777,12 +778,6 @@ function StatCard({ label, value, strong }: { label: string; value: string; stro
 }
 
 const DOW = ["Lun", "Mar", "Mie", "Joi", "Vin", "Sâm", "Dum"];
-const HOUR_STYLE: Record<HourState, string> = {
-  available: "border-line hover:border-accent hover:bg-accent/5",
-  blocked: "border-ink bg-ink text-paper",
-  booked: "border-line bg-neutral-100 text-ink-faint",
-};
-const HOUR_TAG: Record<HourState, string> = { available: "Liber", blocked: "Blocat", booked: "Rezervat" };
 
 /**
  * Blocks hours/days that the customer-facing booking flow should treat as
@@ -896,52 +891,25 @@ function BlackoutsView({
           <>
             <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="font-medium">{formatDay(day)}</p>
-              <form action={toggleWholeDay}>
-                <input type="hidden" name="studio" value={studio} />
-                <input type="hidden" name="date" value={day} />
-                <input type="hidden" name="wholeDayId" value={schedule?.wholeDay?.id ?? ""} />
-                <button
-                  type="submit"
-                  className={cn(
-                    "flex h-9 items-center gap-2 rounded-full border px-4 text-[0.65rem] font-medium uppercase tracking-[0.1em] transition-colors",
-                    schedule?.wholeDay
-                      ? "border-ink bg-ink text-paper hover:bg-ink/85"
-                      : "border-ink/25 hover:bg-ink hover:text-paper",
-                  )}
-                >
-                  <Lock size={13} />
-                  {schedule?.wholeDay ? "Deblochează toată ziua" : "Blochează toată ziua"}
-                </button>
-              </form>
+              <WholeDayToggleButton
+                studio={studio}
+                date={day}
+                wholeDayId={schedule?.wholeDay?.id ?? ""}
+                toggleWholeDay={toggleWholeDay}
+              />
             </div>
 
             <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
-              {generateDaySlots().map((slot) => {
-                const state = schedule?.hours[slot.time] ?? "available";
-                const isBooked = state === "booked";
-                return (
-                  <form key={slot.time} action={toggleHour}>
-                    <input type="hidden" name="studio" value={studio} />
-                    <input type="hidden" name="date" value={day} />
-                    <input type="hidden" name="time" value={slot.time} />
-                    <input type="hidden" name="blocked" value={state === "blocked" ? "1" : "0"} />
-                    <button
-                      type="submit"
-                      disabled={isBooked}
-                      className={cn(
-                        "flex h-14 w-full flex-col items-center justify-center rounded-2xl border text-sm transition-colors",
-                        HOUR_STYLE[state],
-                        isBooked && "cursor-not-allowed",
-                      )}
-                    >
-                      <span className="font-medium">{slot.time}</span>
-                      <span className="text-[0.6rem] uppercase tracking-[0.08em] opacity-70">
-                        {HOUR_TAG[state]}
-                      </span>
-                    </button>
-                  </form>
-                );
-              })}
+              {generateDaySlots().map((slot) => (
+                <HourToggleButton
+                  key={slot.time}
+                  studio={studio}
+                  date={day}
+                  time={slot.time}
+                  state={schedule?.hours[slot.time] ?? "available"}
+                  toggleHour={toggleHour}
+                />
+              ))}
             </div>
           </>
         )}
