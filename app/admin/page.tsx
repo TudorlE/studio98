@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ChevronDown, ChevronLeft, ChevronRight, Lock, Mail, Phone, Search } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, Lock, Mail, Phone } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { formatMoney, generateDaySlots, localDateString, onsiteAdvance, sessionEndTime } from "@/lib/booking";
 import { site } from "@/lib/site";
@@ -11,6 +11,8 @@ import { listBookings, listPayments, type AdminBookingRow } from "@/lib/server/b
 import { getDaySchedule, getMonthBlackoutDays, type HourState } from "@/lib/server/blackouts";
 import type { PaymentRow } from "@/lib/supabase/types";
 import { AdminLoginForm } from "./AdminLoginForm";
+import { AdminSearchBox } from "./AdminSearchBox";
+import { SubmitButton } from "./SubmitButton";
 import { isCalendarConfigured } from "@/lib/server/google-calendar";
 import { ConfirmDeleteButton } from "./ConfirmDeleteButton";
 import { CalendarSyncButton } from "./CalendarSyncButton";
@@ -272,21 +274,7 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
               </Link>
             ))}
           </nav>
-          <form action="/admin" className="relative w-full sm:w-80">
-            {view !== "bookings" && <input type="hidden" name="view" value={view} />}
-            {view === "payments" && month && <input type="hidden" name="month" value={month} />}
-            <Search
-              size={16}
-              className="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2 text-ink-faint"
-            />
-            <input
-              type="search"
-              name="q"
-              defaultValue={rawQ}
-              placeholder="Caută nume, email sau telefon"
-              className="h-11 w-full rounded-full border border-line bg-transparent pr-4 pl-10 text-sm outline-none focus:border-ink"
-            />
-          </form>
+          {view !== "blackouts" && <AdminSearchBox defaultValue={rawQ} />}
         </div>
 
         {view === "bookings" ? (
@@ -551,12 +539,12 @@ function PaymentActions({
                 aria-label="Suma încasată la studio"
                 className="h-9 w-24 rounded-full border border-line bg-transparent px-3 text-right text-xs outline-none focus:border-ink"
               />
-              <button
-                type="submit"
+              <SubmitButton
+                pendingLabel="Se încasează…"
                 className="h-9 shrink-0 rounded-full border border-ink/25 px-4 text-[0.6rem] font-medium uppercase tracking-[0.1em] transition-colors hover:bg-ink hover:text-paper"
               >
                 Încasat la studio
-              </button>
+              </SubmitButton>
             </form>
             <span className="block text-[0.65rem] text-ink-faint">Rest de plată: {formatMoney(balance)}</span>
           </>
@@ -598,12 +586,12 @@ function PaymentActions({
           aria-label="Suma primită prin MIA"
           className="h-9 w-24 rounded-full border border-line bg-transparent px-3 text-right text-xs outline-none focus:border-ink"
         />
-        <button
-          type="submit"
+        <SubmitButton
+          pendingLabel="Se confirmă…"
           className="h-9 shrink-0 rounded-full bg-accent px-4 text-[0.6rem] font-medium uppercase tracking-[0.1em] text-white transition-colors hover:bg-accent-soft"
         >
           Confirmă MIA
-        </button>
+        </SubmitButton>
       </form>
       <span className="mt-1 block text-[0.65rem] text-ink-faint">Se șterge automat la {deadline}</span>
     </div>
