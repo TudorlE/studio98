@@ -9,6 +9,8 @@ import {
   recordPayment,
   syncUpcomingToCalendar,
 } from "@/lib/server/bookings";
+import { blockHour, blockWholeDay, unblockHour, unblockWholeDay } from "@/lib/server/blackouts";
+import type { StudioSlug } from "@/lib/studios";
 
 export type LoginState = { error: string | null };
 
@@ -57,6 +59,30 @@ export async function removePayment(formData: FormData): Promise<void> {
   const id = String(formData.get("paymentId") ?? "");
   if (!id) return;
   await deletePayment(id);
+  revalidatePath("/admin");
+}
+
+/** Toggles one hour: blocks it if free, unblocks it if already blocked by an admin. */
+export async function toggleHour(formData: FormData): Promise<void> {
+  if (!(await isAdminAuthed())) return;
+  const studio = String(formData.get("studio") ?? "") as StudioSlug;
+  const date = String(formData.get("date") ?? "");
+  const time = String(formData.get("time") ?? "");
+  const blocked = formData.get("blocked") === "1";
+  if (!studio || !date || !time) return;
+  if (blocked) await unblockHour(studio, date, time);
+  else await blockHour(studio, date, time);
+  revalidatePath("/admin");
+}
+
+export async function toggleWholeDay(formData: FormData): Promise<void> {
+  if (!(await isAdminAuthed())) return;
+  const studio = String(formData.get("studio") ?? "") as StudioSlug;
+  const date = String(formData.get("date") ?? "");
+  const wholeDayId = String(formData.get("wholeDayId") ?? "");
+  if (!studio || !date) return;
+  if (wholeDayId) await unblockWholeDay(wholeDayId);
+  else await blockWholeDay(studio, date);
   revalidatePath("/admin");
 }
 

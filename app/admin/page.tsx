@@ -1,18 +1,28 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ChevronDown, Mail, Phone, Search } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, Lock, Mail, Phone, Search } from "lucide-react";
 import { cn } from "@/lib/cn";
-import { formatMoney, onsiteAdvance, sessionEndTime } from "@/lib/booking";
+import { formatMoney, generateDaySlots, localDateString, onsiteAdvance, sessionEndTime } from "@/lib/booking";
 import { site } from "@/lib/site";
+import { studios, type StudioSlug } from "@/lib/studios";
 import { isAdminAuthed } from "@/lib/admin-auth";
 import { isSupabaseConfigured } from "@/lib/supabase/admin";
 import { listBookings, listPayments, type AdminBookingRow } from "@/lib/server/bookings";
+import { getDaySchedule, getMonthBlackoutDays, type HourState } from "@/lib/server/blackouts";
 import type { PaymentRow } from "@/lib/supabase/types";
 import { AdminLoginForm } from "./AdminLoginForm";
 import { isCalendarConfigured } from "@/lib/server/google-calendar";
 import { ConfirmDeleteButton } from "./ConfirmDeleteButton";
 import { CalendarSyncButton } from "./CalendarSyncButton";
-import { confirmAdvance, logout, recordStudioPayment, removeBooking, removePayment } from "./actions";
+import {
+  confirmAdvance,
+  logout,
+  recordStudioPayment,
+  removeBooking,
+  removePayment,
+  toggleHour,
+  toggleWholeDay,
+} from "./actions";
 
 export const metadata: Metadata = {
   title: "Admin",
@@ -20,7 +30,7 @@ export const metadata: Metadata = {
 };
 export const dynamic = "force-dynamic";
 
-type View = "bookings" | "clients" | "payments";
+type View = "bookings" | "clients" | "payments" | "blackouts";
 
 type Client = {
   key: string;
@@ -141,10 +151,21 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
 
   const params = await searchParams;
   const view: View =
-    params.view === "clients" ? "clients" : params.view === "payments" ? "payments" : "bookings";
+    params.view === "clients"
+      ? "clients"
+      : params.view === "payments"
+        ? "payments"
+        : params.view === "blackouts"
+          ? "blackouts"
+          : "bookings";
   const month = typeof params.month === "string" && /^\d{4}-\d{2}$/.test(params.month) ? params.month : "";
   const rawQ = typeof params.q === "string" ? params.q.trim() : "";
   const q = rawQ.toLowerCase();
+
+  const bStudio: StudioSlug = params.bs === "studio-02" ? "studio-02" : "studio-01";
+  const today = localDateString(new Date());
+  const bMonth = typeof params.bm === "string" && /^\d{4}-\d{2}$/.test(params.bm) ? params.bm : today.slice(0, 7);
+  const bDay = typeof params.bd === "string" && /^\d{4}-\d{2}-\d{2}$/.test(params.bd) ? params.bd : "";
 
   // Bookings first: listing them also purges expired MIA holds.
   const all = await listBookings();
@@ -164,12 +185,26 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
   const bookings = all.filter((b) => matches(b, q));
   const shownClients = clients.filter((c) => c.bookings.some((b) => matches(b, q)));
 
+  const [bYear, bMonthNum] = bMonth.split("-").map(Number);
+  const blackoutDays = view === "blackouts" ? await getMonthBlackoutDays(bStudio, bYear, bMonthNum) : new Set<string>();
+  const daySchedule = view === "blackouts" && bDay ? await getDaySchedule(bStudio, bDay) : null;
+
   const tabHref = (v: View) => {
     const sp = new URLSearchParams();
     if (v !== "bookings") sp.set("view", v);
     if (rawQ) sp.set("q", rawQ);
     const s = sp.toString();
     return s ? `/admin?${s}` : "/admin";
+  };
+
+  const blackoutHref = (overrides: { bs?: StudioSlug; bm?: string; bd?: string }) => {
+    const sp = new URLSearchParams();
+    sp.set("view", "blackouts");
+    sp.set("bs", overrides.bs ?? bStudio);
+    sp.set("bm", overrides.bm ?? bMonth);
+    const bd = "bd" in overrides ? overrides.bd : bDay;
+    if (bd) sp.set("bd", bd);
+    return `/admin?${sp.toString()}`;
   };
 
   return (
@@ -205,6 +240,7 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
                 ["bookings", `Rezervări (${all.length})`],
                 ["clients", `Clienți (${clients.length})`],
                 ["payments", "Plăți"],
+                ["blackouts", "Blocaje"],
               ] as const
             ).map(([v, label]) => (
               <Link
@@ -317,6 +353,15 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
           )
         ) : view === "payments" ? (
           <PaymentsView payments={payments} bookings={all} q={q} rawQ={rawQ} month={month} />
+        ) : view === "blackouts" ? (
+          <BlackoutsView
+            studio={bStudio}
+            month={bMonth}
+            day={bDay}
+            blackoutDays={blackoutDays}
+            schedule={daySchedule}
+            hrefFor={blackoutHref}
+          />
         ) : shownClients.length === 0 ? (
           <Empty q={rawQ} />
         ) : (
@@ -669,6 +714,180 @@ function StatCard({ label, value, strong }: { label: string; value: string; stro
         {label}
       </p>
       <p className="mt-1.5 font-serif text-xl tracking-tight">{value}</p>
+    </div>
+  );
+}
+
+const DOW = ["Lun", "Mar", "Mie", "Joi", "Vin", "Sâm", "Dum"];
+const HOUR_STYLE: Record<HourState, string> = {
+  available: "border-line hover:border-accent hover:bg-accent/5",
+  blocked: "border-ink bg-ink text-paper",
+  booked: "border-line bg-neutral-100 text-ink-faint",
+};
+const HOUR_TAG: Record<HourState, string> = { available: "Liber", blocked: "Blocat", booked: "Rezervat" };
+
+/**
+ * Blocks hours/days that the customer-facing booking flow should treat as
+ * unavailable, without touching real bookings — one row in `blackouts` per
+ * blocked span. Reads/writes go straight to Supabase with no caching layer,
+ * so a toggle here shows up on the site on the very next request.
+ */
+function BlackoutsView({
+  studio,
+  month,
+  day,
+  blackoutDays,
+  schedule,
+  hrefFor,
+}: {
+  studio: StudioSlug;
+  month: string;
+  day: string;
+  blackoutDays: Set<string>;
+  schedule: { hours: Record<string, HourState>; wholeDay: { id: string } | null } | null;
+  hrefFor: (overrides: { bs?: StudioSlug; bm?: string; bd?: string }) => string;
+}) {
+  const [year, monthNum] = month.split("-").map(Number);
+  const firstOfMonth = new Date(year, monthNum - 1, 1);
+  const daysInMonth = new Date(year, monthNum, 0).getDate();
+  const leadingPad = (firstOfMonth.getDay() + 6) % 7; // Monday-first grid
+  const pad2 = (n: number) => String(n).padStart(2, "0");
+  const dayIso = (n: number) => `${year}-${pad2(monthNum)}-${pad2(n)}`;
+  const today = localDateString(new Date());
+
+  const prevMonth = new Date(year, monthNum - 2, 1);
+  const nextMonth = new Date(year, monthNum, 1);
+  const monthKeyOf = (d: Date) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}`;
+
+  return (
+    <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[360px_1fr]">
+      <div>
+        <div className="mb-4 inline-flex rounded-full border border-line p-1 text-sm">
+          {studios.map((s) => (
+            <Link
+              key={s.slug}
+              href={hrefFor({ bs: s.slug, bd: "" })}
+              className={cn(
+                "rounded-full px-4 py-1.5 transition-colors",
+                studio === s.slug ? "bg-ink text-paper" : "text-ink-soft hover:text-ink",
+              )}
+            >
+              {s.name}
+            </Link>
+          ))}
+        </div>
+
+        <div className="rounded-2xl border border-line p-4">
+          <div className="flex items-center justify-between">
+            <Link
+              href={hrefFor({ bm: monthKeyOf(prevMonth), bd: "" })}
+              className="flex h-8 w-8 items-center justify-center rounded-full border border-line hover:bg-neutral-100"
+              aria-label="Luna precedentă"
+            >
+              <ChevronLeft size={16} />
+            </Link>
+            <p className="font-serif text-lg capitalize tracking-tight">{monthLabel(month)}</p>
+            <Link
+              href={hrefFor({ bm: monthKeyOf(nextMonth), bd: "" })}
+              className="flex h-8 w-8 items-center justify-center rounded-full border border-line hover:bg-neutral-100"
+              aria-label="Luna următoare"
+            >
+              <ChevronRight size={16} />
+            </Link>
+          </div>
+
+          <div className="mt-3 grid grid-cols-7 gap-1 text-center text-[0.65rem] uppercase tracking-[0.08em] text-ink-faint">
+            {DOW.map((d) => (
+              <span key={d}>{d}</span>
+            ))}
+          </div>
+          <div className="mt-1 grid grid-cols-7 gap-1 text-center text-sm">
+            {Array.from({ length: leadingPad }).map((_, i) => (
+              <span key={`pad-${i}`} />
+            ))}
+            {Array.from({ length: daysInMonth }).map((_, i) => {
+              const n = i + 1;
+              const iso = dayIso(n);
+              const selected = iso === day;
+              const past = iso < today;
+              const blocked = blackoutDays.has(iso);
+              return (
+                <Link
+                  key={iso}
+                  href={hrefFor({ bd: selected ? "" : iso })}
+                  className={cn(
+                    "relative flex h-9 items-center justify-center rounded-full transition-colors",
+                    selected ? "bg-accent text-white" : past ? "text-neutral-300" : "hover:bg-neutral-100",
+                  )}
+                >
+                  {n}
+                  {blocked && !selected && (
+                    <span className="absolute bottom-1 h-1 w-1 rounded-full bg-ink" />
+                  )}
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-line p-5">
+        {!day ? (
+          <p className="text-sm text-ink-soft">Alege o zi din calendar ca să blochezi sau să eliberezi ore.</p>
+        ) : (
+          <>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="font-medium">{formatDay(day)}</p>
+              <form action={toggleWholeDay}>
+                <input type="hidden" name="studio" value={studio} />
+                <input type="hidden" name="date" value={day} />
+                <input type="hidden" name="wholeDayId" value={schedule?.wholeDay?.id ?? ""} />
+                <button
+                  type="submit"
+                  className={cn(
+                    "flex h-9 items-center gap-2 rounded-full border px-4 text-[0.65rem] font-medium uppercase tracking-[0.1em] transition-colors",
+                    schedule?.wholeDay
+                      ? "border-ink bg-ink text-paper hover:bg-ink/85"
+                      : "border-ink/25 hover:bg-ink hover:text-paper",
+                  )}
+                >
+                  <Lock size={13} />
+                  {schedule?.wholeDay ? "Deblochează toată ziua" : "Blochează toată ziua"}
+                </button>
+              </form>
+            </div>
+
+            <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {generateDaySlots().map((slot) => {
+                const state = schedule?.hours[slot.time] ?? "available";
+                const isBooked = state === "booked";
+                return (
+                  <form key={slot.time} action={toggleHour}>
+                    <input type="hidden" name="studio" value={studio} />
+                    <input type="hidden" name="date" value={day} />
+                    <input type="hidden" name="time" value={slot.time} />
+                    <input type="hidden" name="blocked" value={state === "blocked" ? "1" : "0"} />
+                    <button
+                      type="submit"
+                      disabled={isBooked}
+                      className={cn(
+                        "flex h-14 w-full flex-col items-center justify-center rounded-2xl border text-sm transition-colors",
+                        HOUR_STYLE[state],
+                        isBooked && "cursor-not-allowed",
+                      )}
+                    >
+                      <span className="font-medium">{slot.time}</span>
+                      <span className="text-[0.6rem] uppercase tracking-[0.08em] opacity-70">
+                        {HOUR_TAG[state]}
+                      </span>
+                    </button>
+                  </form>
+                );
+              })}
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }
