@@ -678,14 +678,12 @@ function PaymentsView({
 
   return (
     <div className="mt-6">
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-6">
         <StatCard label="Încasat în total" value={formatMoney(sum(payments))} strong />
         <StatCard label={`Luna aceasta · ${monthLabel(thisMonth)}`} value={formatMoney(sum(inMonth(thisMonth)))} />
         <StatCard label={`Luna trecută · ${monthLabel(lastMonth)}`} value={formatMoney(sum(inMonth(lastMonth)))} />
-        <StatCard
-          label="MIA · la studio"
-          value={`${formatMoney(sum(payments.filter((p) => p.method === "mia")))} · ${formatMoney(sum(payments.filter((p) => p.method === "studio")))}`}
-        />
+        <StatCard label="MIA" value={formatMoney(sum(payments.filter((p) => p.method === "mia")))} />
+        <StatCard label="La studio" value={formatMoney(sum(payments.filter((p) => p.method === "studio")))} />
         <StatCard label="De încasat (confirmate)" value={formatMoney(outstanding)} />
       </div>
 
