@@ -63,14 +63,11 @@ export const studioAddOns: AddOn[] = [
 
 export const addOnById = (id: string) => studioAddOns.find((a) => a.id === id);
 
-// Example imagery: free-licensed photo-studio interiors from Unsplash.
-// Replace with the studio's own photography by dropping files into
-// public/images/<slug>/ (keep the same names) — no code change needed.
-const galleryFor = (slug: string): StudioImage[] => [
-  { src: `/images/${slug}/01.jpg`, alt: "Studio interior — example image", span: "wide" },
-  { src: `/images/${slug}/02.jpg`, alt: "Studio detail — example image", span: "tall" },
-  { src: `/images/${slug}/05.jpg`, alt: "Studio wide view — example image", span: "wide" },
-];
+// Studio photos, in display order. To add one: drop the file into
+// public/images/<slug>/ and append its name to the list. With 2+ photos the
+// tile slideshow, swipe, arrows and thumbnails switch on by themselves.
+const galleryFor = (slug: string, name: string, files: string[]): StudioImage[] =>
+  files.map((file) => ({ src: `/images/${slug}/${file}`, alt: `${name} — Studio 98`, span: "wide" }));
 
 export const studios: Studio[] = [
   {
@@ -101,7 +98,7 @@ export const studios: Studio[] = [
       "Kitchenette",
       "Street-level access",
     ],
-    images: galleryFor("studio-01"),
+    images: galleryFor("studio-01", "Production Studio", ["01.jpg"]),
     theme: "light",
   },
   {
@@ -130,7 +127,7 @@ export const studios: Studio[] = [
       "Blackout curtains",
       "Freight access",
     ],
-    images: galleryFor("studio-02"),
+    images: galleryFor("studio-02", "The Apartment", ["01.jpg"]),
     theme: "dark",
   },
 ];
